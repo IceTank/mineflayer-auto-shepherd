@@ -9,7 +9,7 @@ import { once } from "events";
 import inventoryViewer = require('mineflayer-web-inventory')
 const wait = require('util').promisify(setTimeout)
 dotenv.config()
-import { makeBot } from "mineflayer-bot-inspector";
+import { makeBot } from "mineflayer-proxy-inspector";
 import path from "path";
 import { promises as fs } from "fs";
 import { Item } from "prismarine-item";
