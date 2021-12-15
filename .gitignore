@@ -3,3 +3,4 @@ dist
 .env
 chat.txt
 package-lock.json
+nmp-cache

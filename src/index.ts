@@ -26,6 +26,7 @@ async function init() {
     username: process.env.MCUSERNAME as string,
     password: process.env.MCPASSWORD,
     auth: 'microsoft',
+    profilesFolder: './nmp-cache',
     version: '1.12.2'
   })
   
