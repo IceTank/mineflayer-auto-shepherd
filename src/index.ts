@@ -71,7 +71,7 @@ async function init() {
 
   resetActionTimeout()
 
-  let shouldShear = false
+  let shouldShear = true
   let shouldEat = false
   let shouldDeposit = false
 
@@ -137,6 +137,7 @@ async function init() {
   bot.on('end', () => rl.close())
 
   const startShearing = async () => {
+    console.info('Starting')
     while (shouldShear) {
       resetActionTimeout()
       if (shouldEat) {
@@ -219,6 +220,8 @@ async function init() {
       return true
     }
   }
+
+  startShearing()
 }
 
 async function getItems() {
