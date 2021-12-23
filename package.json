@@ -15,6 +15,7 @@
     "dotenv": "^10.0.0",
     "mineflayer": "^3.11.2",
     "mineflayer-auto-eat": "^2.3.3",
+    "mineflayer-auto-shepherd": "./dist",
     "mineflayer-pathfinder": "^1.8.0",
     "mineflayer-proxy-inspector": "github:IceTank/mineflayer-proxy-inspector",
     "mineflayer-web-inventory": "^1.6.3",
