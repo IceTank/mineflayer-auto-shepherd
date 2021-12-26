@@ -16,7 +16,10 @@ import { promises as fs } from "fs";
 import readline from "readline";
 
 const chatLog = path.join(__dirname, '../chat.txt')
+const nmpCache = path.join(__dirname, '../nmp-cache')
 console.info('Chat log:', chatLog)
+
+console.info('Nmp cache', nmpCache)
 
 let bot: mineflayer.Bot
 
@@ -26,7 +29,7 @@ async function init() {
     username: process.env.MCUSERNAME as string,
     password: process.env.MCPASSWORD,
     auth: 'microsoft',
-    profilesFolder: './nmp-cache',
+    profilesFolder: nmpCache,
     version: '1.12.2'
   })
   
