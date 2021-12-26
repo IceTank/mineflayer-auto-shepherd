@@ -74,8 +74,8 @@ async function init() {
   await once(bot, 'spawn')
 
   resetActionTimeout()
-  mineflayerViewer(bot, { port: 3000 })
-  inventoryViewer(bot, { port: 3001 })
+  if (process.env.VIEWER === 'true') mineflayerViewer(bot, { port: 3000 })
+  if (process.env.INV === 'true') inventoryViewer(bot, { port: 3001 })
   console.info('Spawned')
   const mcData = MinecraftData(bot.version)
 
