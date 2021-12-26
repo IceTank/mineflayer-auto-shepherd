@@ -10,3 +10,6 @@ INV - Set if the inventory viewer should be used
 
 ## Launch docker image
 `docker run --rm -itd -v ${pwd}/nmp-cache:/src/app/nmp-cache --name mineflayer-auto-shepherd -p 25565:25566 -p 3001:3001 mineflayer-auto-shepherd`
+
+## View logs
+`docker logs -f mineflayer-auto-shepherd`
