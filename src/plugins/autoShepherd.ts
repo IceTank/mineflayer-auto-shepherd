@@ -36,7 +36,7 @@ export function inject(bot: Bot, options: BotOptions): void {
   bot.autoShepherd = {
     getItems: async () => {
       const droppedItems = Object.values(bot.entities).filter(e => {
-        return e.name === 'item' && e.position.distanceTo(bot.entity.position) < 30
+        return e.name === 'item' && e.position.distanceTo(bot.entity.position) < 30 && e.getDroppedItem()?.name?.includes('wool')
       })
       if (droppedItems.length === 0) return
       droppedItems.sort((a, b) => {

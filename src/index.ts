@@ -59,6 +59,7 @@ async function init() {
     }, 30000)
   }
     
+  // @ts-ignore-error
   bot = conn.bot
   bot.on('error', console.error)
   bot.on('kicked', (reason) => console.info('Kicked for reason', reason))
@@ -162,5 +163,11 @@ async function init() {
 
   bot.autoShepherd.startSheering()
 }
+
+// Catch MaxListenersExceededWarning
+process.on('warning', (warning) => {
+  console.warn(warning.message)
+  console.warn(warning.stack)
+})
 
 init()
