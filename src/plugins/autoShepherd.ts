@@ -89,6 +89,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       shouldDeposit = false
       const woolId = mcData.itemsByName.wool.id
       let depositedItems = 0
+      // console.info('Starting to deposit items')
       /** Deposit items in the chest with manual item clicking to counter lag/anti cheat */
       const tryDeposit = async (window: Chest): Promise<boolean> => {
         // @ts-ignore
@@ -110,19 +111,30 @@ export function inject(bot: Bot, options: BotOptions): void {
   
       const chests = bot.findBlocks({
         matching: [mcData.blocksByName.chest.id, mcData.blocksByName.trapped_chest.id],
-        count: 64
+        count: 64,
+        maxDistance: 64
       })
-      if (chests.length === 0) return false
+      if (chests.length === 0) {
+        console.error('No chests found') 
+        return false
+      }
       // console.info(chests)
       const depositSpots = chests.filter(c => bot.blockAt(c.offset(0, -1, 0))?.type === woolId)
       // console.info(depositSpots)
   
+      if (depositSpots.length === 0) {
+        console.error('No deposit spots found')
+        return false
+      }
       for (const d of depositSpots) {
         let window: Chest | undefined = undefined
         try {
           await bot.pathfinder.goto(new goals.GoalGetToBlock(d.x, d.y, d.z))
           const containerBlock = bot.blockAt(d)
-          if (!containerBlock) continue
+          if (!containerBlock) {
+            console.info('Invalid block at ' + d.x + ' ' + d.y + ' ' + d.z, ' expected something got nullish')
+            continue
+          }
           console.info(`Depositing items into chest at ${containerBlock.position.toString()}`)
           window = await bot.openChest(containerBlock)
           const res = await tryDeposit(window)
@@ -168,6 +180,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       bot.autoShepherd.emitter.emit('cycle')
       return
     }
+    if (bot.inventory.emptySlotCount() < 2) await bot.autoShepherd.depositItems()
     const shears = bot.inventory.items().find(i => i.name.includes('shears'))
     if (!shears) {
       console.info('No more shears left')
@@ -179,7 +192,6 @@ export function inject(bot: Bot, options: BotOptions): void {
     // console.info('Getting dropped items')
     await bot.autoShepherd.getItems()
     await wait(1000)
-    if (bot.inventory.emptySlotCount() < 2) await bot.autoShepherd.depositItems()
     bot.autoShepherd.emitter.emit('cycle')
     setTimeout(() => {
       cycle()

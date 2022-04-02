@@ -18,7 +18,6 @@ import readline from "readline";
 const chatLog = path.join(__dirname, '../chat.txt')
 const nmpCache = path.join(__dirname, '../nmp-cache')
 console.info('Chat log:', chatLog)
-
 console.info('Nmp cache', nmpCache)
 
 let bot: mineflayer.Bot
@@ -75,6 +74,7 @@ async function init() {
   // @ts-ignore
   bot.autoEat.disable()
 
+  // Wait for the bot to spawn. Also works for the 2b2t queue
   await once(bot, 'spawn')
 
   resetActionTimeout()
