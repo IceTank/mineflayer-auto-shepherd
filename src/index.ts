@@ -51,21 +51,36 @@ async function init() {
   }
 
   const handleReconnect = () => {
-    console.info('Restarting in 30sec')
+    console.info('Disconnected. Restarting in 30sec')
     setTimeout(() => {
       init()
         .catch(console.error)
     }, 30000)
   }
-    
+  
+  let lastQueuePosition = 0
+
   // @ts-ignore-error
   bot = conn.bot
   bot.on('error', console.error)
   bot.on('kicked', (reason) => console.info('Kicked for reason', reason))
   bot.on('end', handleReconnect)
   bot.on('message', (chatMessage) => {
-    // console.info(chatMessage.toAnsi())
-    fs.appendFile(chatLog, chatMessage.toString() + '\n')
+    const chatString = chatMessage.toString()
+    if (chatString.startsWith('Position in queue:')) {
+      try {
+        const match = chatString.match(/(\d+)/)
+        if (!match) return
+        const num = Number(match[0])
+        if (num !== lastQueuePosition) {
+          lastQueuePosition = num
+          console.info('Queue position', num)
+        }
+      } catch (err) {
+        
+      }
+    }
+    fs.appendFile(chatLog, chatString + '\n')
       .catch(console.error)
   })
 
@@ -80,7 +95,6 @@ async function init() {
   resetActionTimeout()
   if (process.env.VIEWER === 'true') mineflayerViewer(bot, { port: 3000 })
   if (process.env.INV === 'true') inventoryViewer(bot, { port: 3001 })
-  console.info('Spawned')
   const mcData = MinecraftData(bot.version)
 
   const defaultMovement = new Movements(bot, mcData)
