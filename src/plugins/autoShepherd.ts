@@ -167,6 +167,7 @@ export function inject(bot: Bot, options: BotOptions): void {
     },
     startSheering: () => {
       if (isRunning) return
+      shouldStop = false
       startTime = new Date()
       itemsDepositedTotal = 0
       console.info('Starting')
