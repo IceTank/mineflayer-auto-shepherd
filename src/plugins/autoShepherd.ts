@@ -19,6 +19,7 @@ interface AutoShepherd {
   startSheering: () => void
   stopSheering: () => Promise<void>
   isRunning: () => boolean
+  logResults: () => void
 
   emitter: AutoShepherdEmitter
 }
@@ -32,6 +33,9 @@ export function inject(bot: Bot, options: BotOptions): void {
   let shouldStop: boolean = false
   let isRunning = false
   const mcData = Data(bot.version)
+
+  let startTime: Date = new Date()
+  let itemsDepositedTotal: number = 0
 
   bot.autoShepherd = {
     getItems: async () => {
@@ -88,7 +92,7 @@ export function inject(bot: Bot, options: BotOptions): void {
     depositItems: async () => {
       shouldDeposit = false
       const woolId = mcData.itemsByName.wool.id
-      let depositedItems = 0
+      let itemsDeposited = 0
       // console.info('Starting to deposit items')
       /** Deposit items in the chest with manual item clicking to counter lag/anti cheat */
       const tryDeposit = async (window: Chest): Promise<boolean> => {
@@ -100,7 +104,7 @@ export function inject(bot: Bot, options: BotOptions): void {
           // @ts-ignore
           const invItem = window.findInventoryItem(woolId) as Item
           if (invItem === null) return true
-          depositedItems += invItem.count
+          itemsDeposited += invItem.count
           await bot.clickWindow(invItem.slot, 0, 0)
           await wait(200)
           await bot.clickWindow(emptySlot, 0, 0)
@@ -140,7 +144,8 @@ export function inject(bot: Bot, options: BotOptions): void {
           const res = await tryDeposit(window)
           window.close()
           if (res) {
-            console.info(`Deposited ${depositedItems} items (${Math.floor(depositedItems / 64)} stacks + ${depositedItems % 64}) into chests`)
+            console.info(`Deposited ${itemsDeposited} items (${Math.floor(itemsDeposited / 64)} stacks + ${itemsDeposited % 64}) into chests`)
+            itemsDepositedTotal += itemsDeposited
             return true
           }
         } catch (err) {
@@ -151,6 +156,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       }
       if (bot.inventory.emptySlotCount() < 2) {
         console.info('No more space to put wool')
+        bot.autoShepherd.logResults()
         process.exit(0)
       } else {
         return true
@@ -160,6 +166,8 @@ export function inject(bot: Bot, options: BotOptions): void {
       return isRunning
     },
     startSheering: () => {
+      startTime = new Date()
+      itemsDepositedTotal = 0
       console.info('Starting')
       startSheering()
         .catch(console.error)
@@ -168,7 +176,13 @@ export function inject(bot: Bot, options: BotOptions): void {
       shouldStop = true
       await once(bot.autoShepherd.emitter, 'cycle')
     },
-    emitter: new EventEmitter()
+    emitter: new EventEmitter(),
+    logResults: () => {
+      const endTime = new Date()
+      const timeTaken = endTime.getTime() - startTime.getTime()
+      const itemsPerHour = Math.floor(itemsDepositedTotal / (timeTaken / 3_600_000))
+      console.info(`Farmed ${itemsPerHour} items per hour for a total off ${itemsDepositedTotal} items`)
+    }
   } 
 
   const startSheering = async () => {
@@ -184,6 +198,7 @@ export function inject(bot: Bot, options: BotOptions): void {
     const shears = bot.inventory.items().find(i => i.name.includes('shears'))
     if (!shears) {
       console.info('No more shears left')
+      bot.autoShepherd.logResults()
       process.exit(0)
     }
     // console.info('Getting wool')
@@ -197,5 +212,5 @@ export function inject(bot: Bot, options: BotOptions): void {
       cycle()
         .catch(console.error)
     }, 1000)
-  } 
+  }
 }

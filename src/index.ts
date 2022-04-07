@@ -132,6 +132,7 @@ async function init() {
   bot.on('health', async () => {
     if (bot.health < 10) {
       console.warn('Took to much damage logging off')
+      bot.autoShepherd.logResults()
       process.exit(1)
     }
     // @ts-ignore
