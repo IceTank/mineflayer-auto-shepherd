@@ -166,6 +166,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       return isRunning
     },
     startSheering: () => {
+      if (isRunning) return
       startTime = new Date()
       itemsDepositedTotal = 0
       console.info('Starting')
@@ -173,8 +174,10 @@ export function inject(bot: Bot, options: BotOptions): void {
         .catch(console.error)
     },
     stopSheering: async () => {
+      if (shouldStop) return
       shouldStop = true
       await once(bot.autoShepherd.emitter, 'cycle')
+      isRunning = false
       bot.autoShepherd.logResults()
     },
     emitter: new EventEmitter(),
@@ -196,9 +199,11 @@ export function inject(bot: Bot, options: BotOptions): void {
 
   const cycle = async () => {
     if (shouldStop) {
+      isRunning = false
       bot.autoShepherd.emitter.emit('cycle')
       return
     }
+    isRunning = true
     if (bot.inventory.emptySlotCount() < 2) await bot.autoShepherd.depositItems()
     const shears = bot.inventory.items().find(i => i.name.includes('shears'))
     if (!shears) {
