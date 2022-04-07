@@ -28,6 +28,11 @@ interface AutoShepherdEmitter extends EventEmitter {
   on(event: 'cycle', listener: () => void): this
 }
 
+async function timeoutAfter(timeout = 5000): Promise<never> {
+  await wait(timeout)
+  throw new Error('Timeout')
+}
+
 export function inject(bot: Bot, options: BotOptions): void {
   let shouldDeposit: boolean = false
   let shouldStop: boolean = false
@@ -140,7 +145,18 @@ export function inject(bot: Bot, options: BotOptions): void {
             continue
           }
           console.info(`Depositing items into chest at ${containerBlock.position.toString()}`)
-          window = await bot.openChest(containerBlock)
+          for (let i = 0; i < 3; i++) {
+            try {
+              window = await Promise.race([bot.openChest(containerBlock), timeoutAfter()])
+              break
+            } catch (err) { 
+              console.warn(err) 
+            }
+          }
+          if (!window) {
+            console.info('Failed to open chest at ' + d.x + ' ' + d.y + ' ' + d.z)
+            continue
+          }
           const res = await tryDeposit(window)
           window.close()
           if (res) {
