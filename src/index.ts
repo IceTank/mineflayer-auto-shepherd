@@ -168,12 +168,22 @@ async function init() {
         await bot.autoShepherd.depositItems()
         bot.autoShepherd.startSheering()
       })
+    } else if (line === 'quit' || line === 'exit') {
+      exitBot()
     }
   })
 
+  function exitBot() {
+    console.info('Exiting')
+    bot.autoShepherd.stopSheering()
+      .then(() => bot.autoShepherd.depositItems())
+      .then(() => bot.end())
+      .catch(console.error)
+  }
+
   rl.on('SIGINT', () => {
     bot.removeListener('end', handleReconnect)
-    setInterval(() => bot.end())
+    exitBot()
   })
 
   bot.autoShepherd.startSheering()
