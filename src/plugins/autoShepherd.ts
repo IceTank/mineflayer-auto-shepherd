@@ -175,6 +175,7 @@ export function inject(bot: Bot, options: BotOptions): void {
     stopSheering: async () => {
       shouldStop = true
       await once(bot.autoShepherd.emitter, 'cycle')
+      bot.autoShepherd.logResults()
     },
     emitter: new EventEmitter(),
     logResults: () => {
