@@ -180,8 +180,12 @@ export function inject(bot: Bot, options: BotOptions): void {
     logResults: () => {
       const endTime = new Date()
       const timeTaken = endTime.getTime() - startTime.getTime()
-      const itemsPerHour = Math.floor(itemsDepositedTotal / (timeTaken / 3_600_000))
-      console.info(`Farmed ${itemsPerHour} items per hour for a total off ${itemsDepositedTotal} items`)
+      const itemsInventory = bot.inventory.items()
+        .filter(i => i && i.name.includes('wool'))
+        .reduce((acc, i) => acc + i.count, 0)
+      const itemsTotal = itemsDepositedTotal + itemsInventory
+      const itemsPerHour = Math.floor(itemsTotal / (timeTaken / 3_600_000))
+      console.info(`Farmed ${itemsPerHour} items per hour for a total off ${itemsTotal} items`)
     }
   } 
 
