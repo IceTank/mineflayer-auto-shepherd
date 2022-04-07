@@ -161,13 +161,11 @@ async function init() {
       return
     } else if (line === 'stop') {
       bot.autoShepherd.stopSheering()
-    } else if (line === 'test') {
-      console.info(conn.receivingPclients.length)
     } else if (line === 'deposit') {
-      bot.autoShepherd.stopSheering().then(async () => {
-        await bot.autoShepherd.depositItems()
-        bot.autoShepherd.startSheering()
-      })
+      bot.autoShepherd.stopSheering()
+        .then(() => bot.autoShepherd.depositItems())
+        .then(() => bot.autoShepherd.startSheering())
+        .catch(console.error)
     } else if (line === 'quit' || line === 'exit') {
       exitBot()
     }
@@ -177,6 +175,7 @@ async function init() {
     console.info('Exiting')
     bot.autoShepherd.stopSheering()
       .then(() => bot.autoShepherd.depositItems())
+      .then(() => bot.autoShepherd.logResults())
       .then(() => process.exit(0))
       .catch(console.error)
   }

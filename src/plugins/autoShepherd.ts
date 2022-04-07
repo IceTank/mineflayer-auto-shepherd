@@ -182,7 +182,10 @@ export function inject(bot: Bot, options: BotOptions): void {
       return isRunning
     },
     startSheering: () => {
-      if (isRunning) return
+      if (isRunning) {
+        console.info('Already running')
+        return
+      }
       shouldStop = false
       startTime = new Date()
       itemsDepositedTotal = 0
@@ -191,11 +194,13 @@ export function inject(bot: Bot, options: BotOptions): void {
         .catch(console.error)
     },
     stopSheering: async () => {
-      if (shouldStop) return
+      if (shouldStop) {
+        console.info('Already stopping')
+        return
+      }
       shouldStop = true
       await once(bot.autoShepherd.emitter, 'cycle')
       isRunning = false
-      bot.autoShepherd.logResults()
     },
     emitter: new EventEmitter(),
     logResults: () => {
