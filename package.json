@@ -15,7 +15,8 @@
   "dependencies": {
     "@types/node": "^16.11.12",
     "dotenv": "^10.0.0",
-    "mineflayer": "^3.11.2",
+    "mineflayer": "^4.2.0",
+    "prismarine-entity": "^2.1.0",
     "mineflayer-auto-eat": "^2.3.3",
     "mineflayer-auto-shepherd": "./dist",
     "mineflayer-pathfinder": "^1.8.0",
