@@ -177,7 +177,7 @@ async function init() {
     console.info('Exiting')
     bot.autoShepherd.stopSheering()
       .then(() => bot.autoShepherd.depositItems())
-      .then(() => bot.end())
+      .then(() => process.exit(0))
       .catch(console.error)
   }
 
