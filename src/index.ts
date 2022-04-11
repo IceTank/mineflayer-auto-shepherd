@@ -47,7 +47,7 @@ async function init() {
     actionTimeout = setTimeout(() => {
       console.info('Disconnect due to stuck')
       bot.end()
-    }, 120000)
+    }, 60 * 3 * 1000)
   }
 
   const handleReconnect = () => {
@@ -130,7 +130,7 @@ async function init() {
   })
   
   bot.on('health', async () => {
-    if (bot.health < 10) {
+    if (bot.health < 18) {
       console.warn('Took to much damage logging off')
       bot.autoShepherd.logResults()
       process.exit(1)
