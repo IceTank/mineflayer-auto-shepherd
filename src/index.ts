@@ -160,8 +160,11 @@ async function init() {
       return
     } else if (line === 'stop') {
       bot.autoShepherd.stopSheering()
-    } else if (line === 'test') {
-      console.info(conn.receivingPclients.length)
+    } else if (line === 'craft') {
+      console.info('Crafting shears')
+      bot.autoShepherd.craftShears()
+        .then(result => console.info('Result', result))
+        .catch(console.error)
     } else if (line === 'deposit') {
       bot.autoShepherd.stopSheering().then(async () => {
         await bot.autoShepherd.depositItems()

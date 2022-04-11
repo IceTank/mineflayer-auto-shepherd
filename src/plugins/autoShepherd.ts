@@ -12,13 +12,19 @@ declare module 'mineflayer' {
   }
 }
 
+async function timeout(ms = 5000): Promise<never> {
+  return new Promise((resolve, reject) => setTimeout(reject, ms))
+}
+
 interface AutoShepherd {
+  autoCraftShears: boolean
   getItems: () => Promise<void>
   getWool: () => Promise<void>
   depositItems: () => Promise<boolean>
   startSheering: () => void
   stopSheering: () => Promise<void>
   isRunning: () => boolean
+  craftShears: () => Promise<boolean>
 
   emitter: AutoShepherdEmitter
 }
@@ -27,13 +33,17 @@ interface AutoShepherdEmitter extends EventEmitter {
   on(event: 'cycle', listener: () => void): this
 }
 
+const InventoryClickDelay = 200
+
 export function inject(bot: Bot, options: BotOptions): void {
   let shouldDeposit: boolean = false
   let shouldStop: boolean = false
   let isRunning = false
   const mcData = Data(bot.version)
+  const IronIngot = mcData.itemsByName.iron_ingot
 
   bot.autoShepherd = {
+    autoCraftShears: true,
     getItems: async () => {
       const droppedItems = Object.values(bot.entities).filter(e => {
         return e.name === 'item' && e.position.distanceTo(bot.entity.position) < 30 && e.getDroppedItem()?.name?.includes('wool')
@@ -102,9 +112,9 @@ export function inject(bot: Bot, options: BotOptions): void {
           if (invItem === null) return true
           depositedItems += invItem.count
           await bot.clickWindow(invItem.slot, 0, 0)
-          await wait(200)
+          await wait(InventoryClickDelay)
           await bot.clickWindow(emptySlot, 0, 0)
-          await wait(200)
+          await wait(InventoryClickDelay)
         }
         return true
       }
@@ -168,8 +178,80 @@ export function inject(bot: Bot, options: BotOptions): void {
       shouldStop = true
       await once(bot.autoShepherd.emitter, 'cycle')
     },
+    craftShears: async () => {
+      debugger
+      const ironIngotSum = bot.inventory.items().filter(i => i.type === IronIngot.id).reduce((a, b) => a + b.count, 0)
+      if (ironIngotSum < 2) {
+        console.info('Not enough iron ingots')
+        return false
+      }
+      {
+        const pickSuccess = await Promise.race([pickItem(IronIngot.id), timeout()])
+        if (!pickSuccess) {
+          console.info('Pickup iron ingot failed')
+          return false
+        }
+      }
+      // Place first iron ingot in crafting grid
+      await bot.clickWindow(2, 1, 0)
+      await wait(InventoryClickDelay)
+      {
+        const pickSuccess = await Promise.race([pickItem(IronIngot.id), timeout()])
+        if (!pickSuccess) {
+          console.info('Pickup iron ingot failed')
+          return false
+        }
+      }
+      // Place second iron ingot in crafting grid
+      await bot.clickWindow(3, 1, 0)
+      await wait(InventoryClickDelay)
+      {
+        const success = await Promise.race([unselectItem(), timeout()])
+        if (!success) {
+          console.info('unselecting iron ingot failed')
+          return false
+        }
+      }
+      // Click the crafting grid result slot
+      // bot._client.on('transaction', console.info)
+      await bot.clickWindow(0, 0, 0)
+      await wait(InventoryClickDelay)
+      {
+        // Deposit crafted shears into the inventory
+        const success = await Promise.race([unselectItem(), timeout()])
+        if (!success) {
+          console.info('unselecting iron ingot failed')
+          return false
+        }
+      }
+      return true
+    },
     emitter: new EventEmitter()
-  } 
+  }
+
+  const pickItem = async (itemType: number) => {
+    if (bot.inventory.selectedItem && bot.inventory.selectedItem.type !== itemType) {
+      if (!await unselectItem()) return false
+      await wait(InventoryClickDelay)
+    }
+    if (bot.inventory.selectedItem?.type === itemType) return true
+    const item = bot.inventory.items().find(i => i.type === itemType)
+    if (!item) return false
+    await bot.clickWindow(item.slot, 0, 0)
+    return true
+  }
+
+  const unselectItem = async () => {
+    if (!bot.inventory.selectedItem) return true
+    const freeSlot = bot.inventory.firstEmptySlotRange(bot.inventory.hotbarStart, bot.inventory.hotbarStart + 9)
+    if (freeSlot === null) {
+      console.info('No free hotbar slot to put crafted shears')
+      return false
+    }
+    await bot.clickWindow(freeSlot, 0, 0)
+    await wait(InventoryClickDelay)
+    return true
+  }
 
   const startSheering = async () => {
     cycle()
@@ -183,8 +265,15 @@ export function inject(bot: Bot, options: BotOptions): void {
     if (bot.inventory.emptySlotCount() < 2) await bot.autoShepherd.depositItems()
     const shears = bot.inventory.items().find(i => i.name.includes('shears'))
     if (!shears) {
-      console.info('No more shears left')
-      process.exit(0)
+      if (!bot.autoShepherd.autoCraftShears) {
+        console.info('No more shears left')
+        process.exit(0)
+      }
+      const success = await bot.autoShepherd.craftShears()
+      if (!success) {
+        console.info('No more shears left. Crafting shears failed')
+        process.exit(0)
+      }
     }
     // console.info('Getting wool')
     await bot.autoShepherd.getWool()
