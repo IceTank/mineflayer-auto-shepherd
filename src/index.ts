@@ -132,6 +132,7 @@ async function init() {
   bot.on('health', async () => {
     if (bot.health < 10) {
       console.warn('Took to much damage logging off')
+      bot.autoShepherd.logResults()
       process.exit(1)
     }
     // @ts-ignore
@@ -166,16 +167,27 @@ async function init() {
         .then(result => console.info('Result', result))
         .catch(console.error)
     } else if (line === 'deposit') {
-      bot.autoShepherd.stopSheering().then(async () => {
-        await bot.autoShepherd.depositItems()
-        bot.autoShepherd.startSheering()
-      })
+      bot.autoShepherd.stopSheering()
+        .then(() => bot.autoShepherd.depositItems())
+        .then(() => bot.autoShepherd.startSheering())
+        .catch(console.error)
+    } else if (line === 'quit' || line === 'exit') {
+      exitBot()
     }
   })
 
+  function exitBot() {
+    console.info('Exiting')
+    bot.autoShepherd.stopSheering()
+      .then(() => bot.autoShepherd.depositItems())
+      .then(() => bot.autoShepherd.logResults())
+      .then(() => process.exit(0))
+      .catch(console.error)
+  }
+
   rl.on('SIGINT', () => {
     bot.removeListener('end', handleReconnect)
-    setInterval(() => bot.end())
+    exitBot()
   })
 
   bot.autoShepherd.startSheering()

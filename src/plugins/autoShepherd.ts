@@ -25,6 +25,7 @@ interface AutoShepherd {
   stopSheering: () => Promise<void>
   isRunning: () => boolean
   craftShears: () => Promise<boolean>
+  logResults: () => void
 
   emitter: AutoShepherdEmitter
 }
@@ -35,12 +36,20 @@ interface AutoShepherdEmitter extends EventEmitter {
 
 const InventoryClickDelay = 200
 
+async function timeoutAfter(timeout = 5000): Promise<never> {
+  await wait(timeout)
+  throw new Error('Timeout')
+}
+
 export function inject(bot: Bot, options: BotOptions): void {
   let shouldDeposit: boolean = false
   let shouldStop: boolean = false
   let isRunning = false
   const mcData = Data(bot.version)
   const IronIngot = mcData.itemsByName.iron_ingot
+
+  let startTime: Date = new Date()
+  let itemsDepositedTotal: number = 0
 
   bot.autoShepherd = {
     autoCraftShears: true,
@@ -98,7 +107,7 @@ export function inject(bot: Bot, options: BotOptions): void {
     depositItems: async () => {
       shouldDeposit = false
       const woolId = mcData.itemsByName.wool.id
-      let depositedItems = 0
+      let itemsDeposited = 0
       // console.info('Starting to deposit items')
       /** Deposit items in the chest with manual item clicking to counter lag/anti cheat */
       const tryDeposit = async (window: Chest): Promise<boolean> => {
@@ -110,7 +119,7 @@ export function inject(bot: Bot, options: BotOptions): void {
           // @ts-ignore
           const invItem = window.findInventoryItem(woolId) as Item
           if (invItem === null) return true
-          depositedItems += invItem.count
+          itemsDeposited += invItem.count
           await bot.clickWindow(invItem.slot, 0, 0)
           await wait(InventoryClickDelay)
           await bot.clickWindow(emptySlot, 0, 0)
@@ -146,11 +155,23 @@ export function inject(bot: Bot, options: BotOptions): void {
             continue
           }
           console.info(`Depositing items into chest at ${containerBlock.position.toString()}`)
-          window = await bot.openChest(containerBlock)
+          for (let i = 0; i < 3; i++) {
+            try {
+              window = await Promise.race([bot.openChest(containerBlock), timeoutAfter()])
+              break
+            } catch (err) { 
+              console.warn(err) 
+            }
+          }
+          if (!window) {
+            console.info('Failed to open chest at ' + d.x + ' ' + d.y + ' ' + d.z)
+            continue
+          }
           const res = await tryDeposit(window)
           window.close()
           if (res) {
-            console.info(`Deposited ${depositedItems} items (${Math.floor(depositedItems / 64)} stacks + ${depositedItems % 64}) into chests`)
+            console.info(`Deposited ${itemsDeposited} items (${Math.floor(itemsDeposited / 64)} stacks + ${itemsDeposited % 64}) into chests`)
+            itemsDepositedTotal += itemsDeposited
             return true
           }
         } catch (err) {
@@ -161,6 +182,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       }
       if (bot.inventory.emptySlotCount() < 2) {
         console.info('No more space to put wool')
+        bot.autoShepherd.logResults()
         process.exit(0)
       } else {
         return true
@@ -170,13 +192,25 @@ export function inject(bot: Bot, options: BotOptions): void {
       return isRunning
     },
     startSheering: () => {
+      if (isRunning) {
+        console.info('Already running')
+        return
+      }
+      shouldStop = false
+      startTime = new Date()
+      itemsDepositedTotal = 0
       console.info('Starting')
       startSheering()
         .catch(console.error)
     },
     stopSheering: async () => {
+      if (shouldStop) {
+        console.info('Already stopping')
+        return
+      }
       shouldStop = true
       await once(bot.autoShepherd.emitter, 'cycle')
+      isRunning = false
     },
     craftShears: async () => {
       debugger
@@ -226,6 +260,16 @@ export function inject(bot: Bot, options: BotOptions): void {
       }
       return true
     },
+    logResults: () => {
+      const endTime = new Date()
+      const timeTaken = endTime.getTime() - startTime.getTime()
+      const itemsInventory = bot.inventory.items()
+        .filter(i => i && i.name.includes('wool'))
+        .reduce((acc, i) => acc + i.count, 0)
+      const itemsTotal = itemsDepositedTotal + itemsInventory
+      const itemsPerHour = Math.floor(itemsTotal / (timeTaken / 3_600_000))
+      console.info(`Farmed ${itemsPerHour} items per hour for a total off ${itemsTotal} items`)
+    },
     emitter: new EventEmitter()
   }
 
@@ -259,19 +303,23 @@ export function inject(bot: Bot, options: BotOptions): void {
 
   const cycle = async () => {
     if (shouldStop) {
+      isRunning = false
       bot.autoShepherd.emitter.emit('cycle')
       return
     }
+    isRunning = true
     if (bot.inventory.emptySlotCount() < 2) await bot.autoShepherd.depositItems()
     const shears = bot.inventory.items().find(i => i.name.includes('shears'))
     if (!shears) {
       if (!bot.autoShepherd.autoCraftShears) {
         console.info('No more shears left')
+        bot.autoShepherd.logResults()
         process.exit(0)
       }
       const success = await bot.autoShepherd.craftShears()
       if (!success) {
         console.info('No more shears left. Crafting shears failed')
+        bot.autoShepherd.logResults()
         process.exit(0)
       }
     }
@@ -286,5 +334,5 @@ export function inject(bot: Bot, options: BotOptions): void {
       cycle()
         .catch(console.error)
     }, 1000)
-  } 
+  }
 }
