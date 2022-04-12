@@ -12,10 +12,6 @@ declare module 'mineflayer' {
   }
 }
 
-async function timeout(ms = 5000): Promise<never> {
-  return new Promise((resolve, reject) => setTimeout(reject, ms))
-}
-
 interface AutoShepherd {
   autoCraftShears: boolean
   lastActions: string[]
@@ -88,7 +84,7 @@ export function inject(bot: Bot, options: BotOptions): void {
           const { x, y, z } = item.position.floored()
           const walking = bot.pathfinder.goto(new goals.GoalBlock(x, y, z))
           try {
-            await Promise.race([walking, timeout(20_000)])
+            await Promise.race([walking, timeoutAfter(20_000)])
           } catch (err) {
             bot.pathfinder.setGoal(null)
             throw err
@@ -116,7 +112,7 @@ export function inject(bot: Bot, options: BotOptions): void {
         try {
           const walking = bot.pathfinder.goto(new goals.GoalFollow(sheep, 1))
           try {
-            await Promise.race([walking, timeout(20_000)])
+            await Promise.race([walking, timeoutAfter(20_000)])
           } catch (err) {
             bot.pathfinder.setGoal(null)
             throw err
@@ -181,7 +177,7 @@ export function inject(bot: Bot, options: BotOptions): void {
         try {
           const walking = bot.pathfinder.goto(new goals.GoalGetToBlock(d.x, d.y, d.z))
           try {
-            await Promise.race([walking, timeout(20_000)])
+            await Promise.race([walking, timeoutAfter(20_000)])
           } catch (err) {
             bot.pathfinder.setGoal(null)
             throw err
@@ -194,6 +190,7 @@ export function inject(bot: Bot, options: BotOptions): void {
           console.info(`Depositing items into chest at ${containerBlock.position.toString()}`)
           for (let i = 0; i < 3; i++) {
             try {
+              await Promise.race([bot.lookAt(containerBlock.position), timeoutAfter()])
               window = await Promise.race([bot.openChest(containerBlock), timeoutAfter()])
               break
             } catch (err) { 
@@ -259,7 +256,7 @@ export function inject(bot: Bot, options: BotOptions): void {
         return false
       }
       {
-        const pickSuccess = await Promise.race([pickItem(IronIngot.id), timeout()])
+        const pickSuccess = await Promise.race([pickItem(IronIngot.id), timeoutAfter()])
         if (!pickSuccess) {
           console.info('Pickup iron ingot failed')
           return false
@@ -269,7 +266,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       await bot.clickWindow(2, 1, 0)
       await wait(InventoryClickDelay)
       {
-        const pickSuccess = await Promise.race([pickItem(IronIngot.id), timeout()])
+        const pickSuccess = await Promise.race([pickItem(IronIngot.id), timeoutAfter()])
         if (!pickSuccess) {
           console.info('Pickup iron ingot failed')
           return false
@@ -279,7 +276,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       await bot.clickWindow(3, 1, 0)
       await wait(InventoryClickDelay)
       {
-        const success = await Promise.race([unselectItem(), timeout()])
+        const success = await Promise.race([unselectItem(), timeoutAfter()])
         if (!success) {
           console.info('unselecting iron ingot failed')
           return false
@@ -291,7 +288,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       await wait(InventoryClickDelay)
       {
         // Deposit crafted shears into the inventory
-        const success = await Promise.race([unselectItem(true), timeout()])
+        const success = await Promise.race([unselectItem(true), timeoutAfter()])
         if (!success) {
           console.info('unselecting crafted failed')
           return false
