@@ -54,8 +54,16 @@ export function inject(bot: Bot, options: BotOptions): void {
   bot.autoShepherd = {
     autoCraftShears: true,
     getItems: async () => {
-      const droppedItems = Object.values(bot.entities).filter(e => {
-        return e.name === 'item' && e.position.distanceTo(bot.entity.position) < 30 && e.getDroppedItem()?.name?.includes('wool')
+      let droppedItems
+      droppedItems = Object.values(bot.entities).filter(e => {
+        try {
+          return e.name === 'item' && e.position.distanceTo(bot.entity.position) < 30 && e.getDroppedItem()?.name?.includes('wool')
+        } catch (err) {
+          console.error('Got error looking for items')
+          console.error(err)
+          console.error(e)
+          return false
+        }
       })
       if (droppedItems.length === 0) return
       droppedItems.sort((a, b) => {
