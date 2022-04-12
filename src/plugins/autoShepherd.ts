@@ -262,7 +262,7 @@ export function inject(bot: Bot, options: BotOptions): void {
         // Deposit crafted shears into the inventory
         const success = await Promise.race([unselectItem(), timeout()])
         if (!success) {
-          console.info('unselecting iron ingot failed')
+          console.info('unselecting crafted failed')
           return false
         }
       }
@@ -293,15 +293,22 @@ export function inject(bot: Bot, options: BotOptions): void {
     return true
   }
 
-  const unselectItem = async () => {
+  const unselectItem = async (hotbar = false) => {
     if (!bot.inventory.selectedItem) return true
-    const freeSlot = bot.inventory.firstEmptySlotRange(bot.inventory.hotbarStart, bot.inventory.hotbarStart + 9)
+    const rangeStart = hotbar ? bot.inventory.hotbarStart : bot.inventory.inventoryStart
+    let freeSlot = bot.inventory.firstEmptySlotRange(rangeStart, bot.inventory.hotbarStart + 9)
     if (freeSlot === null) {
-      console.info('No free hotbar slot to put crafted shears')
-      return false
+      // If no free slot force use a slot and drop the item already in it
+      freeSlot = hotbar ? 36 : 9
+      console.info(`No free slot to put item, dropping ` 
+        + `${bot.inventory.slots[freeSlot]?.name}x${bot.inventory.slots[freeSlot]?.count}`)
     }
     await bot.clickWindow(freeSlot, 0, 0)
     await wait(InventoryClickDelay)
+    if (bot.inventory.selectedItem) {
+      await bot.clickWindow(-999, 0, 0)
+      await wait(InventoryClickDelay)
+    }
     return true
   }
 
