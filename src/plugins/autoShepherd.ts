@@ -260,7 +260,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       await wait(InventoryClickDelay)
       {
         // Deposit crafted shears into the inventory
-        const success = await Promise.race([unselectItem(), timeout()])
+        const success = await Promise.race([unselectItem(true), timeout()])
         if (!success) {
           console.info('unselecting crafted failed')
           return false
