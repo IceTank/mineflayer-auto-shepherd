@@ -365,6 +365,7 @@ export function inject(bot: Bot, options: BotOptions): void {
         console.info('No more shears left')
         botExit(0)
       }
+      console.info('Crafting new shears')
       const success = await bot.autoShepherd.craftShears()
       if (!success) {
         console.info('No more shears left. Crafting shears failed')
