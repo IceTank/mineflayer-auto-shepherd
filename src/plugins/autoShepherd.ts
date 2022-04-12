@@ -18,6 +18,7 @@ async function timeout(ms = 5000): Promise<never> {
 
 interface AutoShepherd {
   autoCraftShears: boolean
+  lastActions: string[]
   getItems: () => Promise<void>
   getWool: () => Promise<void>
   depositItems: () => Promise<boolean>
@@ -51,11 +52,19 @@ export function inject(bot: Bot, options: BotOptions): void {
   let startTime: Date = new Date()
   let itemsDepositedTotal: number = 0
 
+  const addLastAction = (action: string) => {
+    bot.autoShepherd.lastActions.push(action)
+    if (bot.autoShepherd.lastActions.length > 10) {
+      bot.autoShepherd.lastActions.shift()
+    }
+  }
+
   bot.autoShepherd = {
     autoCraftShears: true,
+    lastActions: [],
     getItems: async () => {
-      let droppedItems
-      droppedItems = Object.values(bot.entities).filter(e => {
+      addLastAction('getItems')
+      const droppedItems = Object.values(bot.entities).filter(e => {
         try {
           return e.name === 'item' && e.position.distanceTo(bot.entity.position) < 30 && e.getDroppedItem()?.name?.includes('wool')
         } catch (err) {
@@ -77,13 +86,20 @@ export function inject(bot: Bot, options: BotOptions): void {
         if (!item) break
         try {
           const { x, y, z } = item.position.floored()
-          await bot.pathfinder.goto(new goals.GoalBlock(x, y, z))
+          const walking = bot.pathfinder.goto(new goals.GoalBlock(x, y, z))
+          try {
+            await Promise.race([walking, timeout(20_000)])
+          } catch (err) {
+            bot.pathfinder.setGoal(null)
+            throw err
+          }
         } catch (err) {
           if ((err as Error).name !== 'NoPath') console.error(err)
         }
       }
     },
     getWool: async () => {
+      addLastAction('getWool')
       const unSheeredSheep = Object.values(bot.entities).filter(e => {
         return e.name === 'sheep' && e.position.distanceTo(bot.entity.position) < 45 && (e.metadata[13] as unknown as number) < 16 && (e.metadata[12] as unknown as boolean) == false
       })
@@ -98,7 +114,13 @@ export function inject(bot: Bot, options: BotOptions): void {
         const sheep = unSheeredSheep.pop()
         if (!sheep) break
         try {
-          await bot.pathfinder.goto(new goals.GoalFollow(sheep, 1))
+          const walking = bot.pathfinder.goto(new goals.GoalFollow(sheep, 1))
+          try {
+            await Promise.race([walking, timeout(20_000)])
+          } catch (err) {
+            bot.pathfinder.setGoal(null)
+            throw err
+          }
           const shears = bot.inventory.items().find(i => i.name.includes('shears'))
           if (!shears) {
             console.error('No more shears left')
@@ -113,6 +135,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       }
     },
     depositItems: async () => {
+      addLastAction('depositItems')
       shouldDeposit = false
       const woolId = mcData.itemsByName.wool.id
       let itemsDeposited = 0
@@ -156,7 +179,13 @@ export function inject(bot: Bot, options: BotOptions): void {
       for (const d of depositSpots) {
         let window: Chest | undefined = undefined
         try {
-          await bot.pathfinder.goto(new goals.GoalGetToBlock(d.x, d.y, d.z))
+          const walking = bot.pathfinder.goto(new goals.GoalGetToBlock(d.x, d.y, d.z))
+          try {
+            await Promise.race([walking, timeout(20_000)])
+          } catch (err) {
+            bot.pathfinder.setGoal(null)
+            throw err
+          }
           const containerBlock = bot.blockAt(d)
           if (!containerBlock) {
             console.info('Invalid block at ' + d.x + ' ' + d.y + ' ' + d.z, ' expected something got nullish')
@@ -190,8 +219,8 @@ export function inject(bot: Bot, options: BotOptions): void {
       }
       if (bot.inventory.emptySlotCount() < 2) {
         console.info('No more space to put wool')
-        bot.autoShepherd.logResults()
-        process.exit(0)
+        botExit(0)
+        return false
       } else {
         return true
       }
@@ -200,6 +229,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       return isRunning
     },
     startSheering: () => {
+      addLastAction('startSheering')
       if (isRunning) {
         console.info('Already running')
         return
@@ -212,6 +242,7 @@ export function inject(bot: Bot, options: BotOptions): void {
         .catch(console.error)
     },
     stopSheering: async () => {
+      addLastAction('stopSheering')
       if (shouldStop) {
         console.info('Already stopping')
         return
@@ -221,7 +252,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       isRunning = false
     },
     craftShears: async () => {
-      debugger
+      addLastAction('craftShears')
       const ironIngotSum = bot.inventory.items().filter(i => i.type === IronIngot.id).reduce((a, b) => a + b.count, 0)
       if (ironIngotSum < 2) {
         console.info('Not enough iron ingots')
@@ -281,6 +312,12 @@ export function inject(bot: Bot, options: BotOptions): void {
     emitter: new EventEmitter()
   }
 
+  const botExit = (code: number = 1): never => {
+    console.info('Last actions before quitting:', bot.autoShepherd.lastActions)
+    bot.autoShepherd.logResults()
+    process.exit(code)
+  }
+
   const pickItem = async (itemType: number) => {
     if (bot.inventory.selectedItem && bot.inventory.selectedItem.type !== itemType) {
       if (!await unselectItem()) return false
@@ -317,6 +354,7 @@ export function inject(bot: Bot, options: BotOptions): void {
   }
 
   const cycle = async () => {
+    addLastAction('cycle start')
     if (shouldStop) {
       isRunning = false
       bot.autoShepherd.emitter.emit('cycle')
@@ -328,14 +366,12 @@ export function inject(bot: Bot, options: BotOptions): void {
     if (!shears) {
       if (!bot.autoShepherd.autoCraftShears) {
         console.info('No more shears left')
-        bot.autoShepherd.logResults()
-        process.exit(0)
+        botExit(0)
       }
       const success = await bot.autoShepherd.craftShears()
       if (!success) {
         console.info('No more shears left. Crafting shears failed')
-        bot.autoShepherd.logResults()
-        process.exit(0)
+        botExit(1)
       }
     }
     // console.info('Getting wool')
