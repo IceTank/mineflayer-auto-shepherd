@@ -22,6 +22,10 @@ console.info('Nmp cache', nmpCache)
 
 let bot: mineflayer.Bot
 
+let disconnectCooldown = 0
+let maxDisconnectCooldown = 10 * 60 * 1000 // 10 minutes
+let lastDisconnect = 0
+
 async function init() {
   const conn = makeBot({
     host: process.env.MCHOST,
@@ -52,11 +56,19 @@ async function init() {
   }
 
   const handleReconnect = () => {
-    console.info('Disconnected. Restarting in 30sec')
+    const now = Date.now()
+    if (now - lastDisconnect < 60 * 1000) {
+      disconnectCooldown += 30_000
+      disconnectCooldown = Math.min(disconnectCooldown, maxDisconnectCooldown)
+    } else {
+      disconnectCooldown = 0
+    }
+    lastDisconnect = now
+    console.info(`Disconnected. Restarting in ${30 + Math.floor(disconnectCooldown / 1000)}sec`)
     setTimeout(() => {
       init()
         .catch(console.error)
-    }, 30000)
+    }, 30000 + disconnectCooldown)
   }
   
   let lastQueuePosition = 0
