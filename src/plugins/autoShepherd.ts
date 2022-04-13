@@ -49,8 +49,9 @@ export function inject(bot: Bot, options: BotOptions): void {
   let itemsDepositedTotal: number = 0
 
   const addLastAction = (action: string) => {
-    bot.autoShepherd.lastActions.push(action)
-    if (bot.autoShepherd.lastActions.length > 10) {
+    const now = new Date()
+    bot.autoShepherd.lastActions.push(`${now.toLocaleTimeString()} ${action}`)
+    if (bot.autoShepherd.lastActions.length > 30) {
       bot.autoShepherd.lastActions.shift()
     }
   }
@@ -110,6 +111,7 @@ export function inject(bot: Bot, options: BotOptions): void {
         const sheep = unSheeredSheep.pop()
         if (!sheep) break
         try {
+          addLastAction('getWool->approaching sheep')
           const walking = bot.pathfinder.goto(new goals.GoalFollow(sheep, 1))
           try {
             await Promise.race([walking, timeoutAfter(20_000)])
@@ -122,8 +124,10 @@ export function inject(bot: Bot, options: BotOptions): void {
             console.error('No more shears left')
             return
           }
-          await bot.equip(shears.type, 'hand')
+          addLastAction('getWool->equipping shears')
+          await Promise.race([bot.equip(shears.type, 'hand'), timeoutAfter(5_000)])
           await wait(100)
+          addLastAction('getWool->shearing sheep')
           await bot.activateEntity(sheep)
         } catch (err) {
           if ((err as Error).name !== 'NoPath') console.error(err)
