@@ -50,7 +50,7 @@ async function init() {
     if (actionTimeout) clearTimeout(actionTimeout)
     actionTimeout = setTimeout(() => {
       console.info('Disconnect due to stuck')
-      console.info('Last actions', bot.autoShepherd.lastActions.join('\n'))
+      console.info('Last actions', bot.autoShepherd.lastActions)
       bot.end()
     }, 60 * 4 * 1000)
   }
