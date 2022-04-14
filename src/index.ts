@@ -52,7 +52,7 @@ async function init() {
       console.info('Disconnect due to stuck')
       console.info('Last actions', bot.autoShepherd.lastActions.join('\n'))
       bot.end()
-    }, 60 * 3 * 1000)
+    }, 60 * 4 * 1000)
   }
 
   const handleReconnect = () => {

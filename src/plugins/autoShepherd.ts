@@ -61,6 +61,7 @@ export function inject(bot: Bot, options: BotOptions): void {
     lastActions: [],
     getItems: async () => {
       addLastAction('getItems')
+      let maxCycles = 5
       const droppedItems = Object.values(bot.entities).filter(e => {
         try {
           return e.name === 'item' && e.position.distanceTo(bot.entity.position) < 30 && e.getDroppedItem()?.name?.includes('wool')
@@ -75,7 +76,12 @@ export function inject(bot: Bot, options: BotOptions): void {
       droppedItems.sort((a, b) => {
         return b.position.distanceTo(bot.entity.position) - a.position.distanceTo(bot.entity.position)
       })
+      let cycle = 0
       while (droppedItems.length !== 0) {
+        cycle++
+        if (cycle > maxCycles) {
+          break
+        }
         droppedItems.sort((a, b) => {
           return b.position.distanceTo(bot.entity.position) - a.position.distanceTo(bot.entity.position)
         })
@@ -85,9 +91,10 @@ export function inject(bot: Bot, options: BotOptions): void {
           const { x, y, z } = item.position.floored()
           const walking = bot.pathfinder.goto(new goals.GoalBlock(x, y, z))
           try {
-            await Promise.race([walking, timeoutAfter(20_000)])
+            await Promise.race([walking, timeoutAfter(10_000)])
           } catch (err) {
             bot.pathfinder.setGoal(null)
+            await wait(1)
             throw err
           }
         } catch (err) {
@@ -97,6 +104,7 @@ export function inject(bot: Bot, options: BotOptions): void {
     },
     getWool: async () => {
       addLastAction('getWool')
+      const maxCycles = 5
       const unSheeredSheep = Object.values(bot.entities).filter(e => {
         return e.name === 'sheep' && e.position.distanceTo(bot.entity.position) < 45 && (e.metadata[13] as unknown as number) < 16 && (e.metadata[12] as unknown as boolean) == false
       })
@@ -104,7 +112,12 @@ export function inject(bot: Bot, options: BotOptions): void {
         return b.position.distanceTo(bot.entity.position) - a.position.distanceTo(bot.entity.position)
       })
       if (unSheeredSheep.length === 0) return
+      let cycel = 0
       while (unSheeredSheep.length !== 0) {
+        cycel++
+        if (cycel > maxCycles) {
+          break
+        }
         unSheeredSheep.sort((a, b) => {
           return b.position.distanceTo(bot.entity.position) - a.position.distanceTo(bot.entity.position)
         })
@@ -117,6 +130,7 @@ export function inject(bot: Bot, options: BotOptions): void {
             await Promise.race([walking, timeoutAfter(20_000)])
           } catch (err) {
             bot.pathfinder.setGoal(null)
+            await wait(1)
             throw err
           }
           const shears = bot.inventory.items().find(i => i.name.includes('shears'))
@@ -184,6 +198,7 @@ export function inject(bot: Bot, options: BotOptions): void {
             await Promise.race([walking, timeoutAfter(20_000)])
           } catch (err) {
             bot.pathfinder.setGoal(null)
+            await wait(1)
             throw err
           }
           const containerBlock = bot.blockAt(d)
