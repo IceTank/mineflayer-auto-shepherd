@@ -44,6 +44,7 @@ export function inject(bot: Bot, options: BotOptions): void {
   let isRunning = false
   const mcData = Data(bot.version)
   const IronIngot = mcData.itemsByName.iron_ingot
+  const maxTimeInAction = 30_000
 
   let startTime: Date = new Date()
   let itemsDepositedTotal: number = 0
@@ -60,6 +61,7 @@ export function inject(bot: Bot, options: BotOptions): void {
     autoCraftShears: true,
     lastActions: [],
     getItems: async () => {
+      const actionStart = Date.now()
       addLastAction('getItems')
       let maxCycles = 5
       const droppedItems = Object.values(bot.entities).filter(e => {
@@ -77,11 +79,8 @@ export function inject(bot: Bot, options: BotOptions): void {
         return b.position.distanceTo(bot.entity.position) - a.position.distanceTo(bot.entity.position)
       })
       let cycle = 0
-      while (droppedItems.length !== 0) {
+      while (droppedItems.length !== 0 && actionStart + maxTimeInAction > Date.now() && cycle < maxCycles) {
         cycle++
-        if (cycle > maxCycles) {
-          break
-        }
         droppedItems.sort((a, b) => {
           return b.position.distanceTo(bot.entity.position) - a.position.distanceTo(bot.entity.position)
         })
@@ -103,6 +102,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       }
     },
     getWool: async () => {
+      const actionStart = Date.now()
       addLastAction('getWool')
       const maxCycles = 5
       const unSheeredSheep = Object.values(bot.entities).filter(e => {
@@ -113,11 +113,8 @@ export function inject(bot: Bot, options: BotOptions): void {
       })
       if (unSheeredSheep.length === 0) return
       let cycel = 0
-      while (unSheeredSheep.length !== 0) {
+      while (unSheeredSheep.length !== 0 && actionStart + maxTimeInAction > Date.now() && cycel < maxCycles) {
         cycel++
-        if (cycel > maxCycles) {
-          break
-        }
         unSheeredSheep.sort((a, b) => {
           return b.position.distanceTo(bot.entity.position) - a.position.distanceTo(bot.entity.position)
         })
@@ -149,6 +146,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       }
     },
     depositItems: async () => {
+      const actionStart = Date.now()
       addLastAction('depositItems')
       shouldDeposit = false
       const woolId = mcData.itemsByName.wool.id

@@ -49,7 +49,8 @@ async function init() {
   const resetActionTimeout = () => {
     if (actionTimeout) clearTimeout(actionTimeout)
     actionTimeout = setTimeout(() => {
-      console.info('Disconnect due to stuck')
+      const now = new Date()
+      console.info('Disconnect due to stuck', now.toLocaleTimeString())
       console.info('Last actions', bot.autoShepherd.lastActions)
       bot.end()
     }, 60 * 4 * 1000)
