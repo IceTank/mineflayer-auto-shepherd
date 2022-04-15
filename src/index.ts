@@ -48,6 +48,7 @@ async function init() {
   
   const resetActionTimeout = () => {
     if (actionTimeout) clearTimeout(actionTimeout)
+    bot.autoShepherd.addLastAction('cycle reset')
     actionTimeout = setTimeout(() => {
       const now = new Date()
       console.info('Disconnect due to stuck', now.toLocaleTimeString())

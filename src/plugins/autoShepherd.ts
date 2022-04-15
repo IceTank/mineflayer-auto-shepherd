@@ -15,6 +15,7 @@ declare module 'mineflayer' {
 interface AutoShepherd {
   autoCraftShears: boolean
   lastActions: string[]
+  addLastAction: (action: string) => void
   getItems: () => Promise<void>
   getWool: () => Promise<void>
   depositItems: () => Promise<boolean>
@@ -49,20 +50,19 @@ export function inject(bot: Bot, options: BotOptions): void {
   let startTime: Date = new Date()
   let itemsDepositedTotal: number = 0
 
-  const addLastAction = (action: string) => {
-    const now = new Date()
-    bot.autoShepherd.lastActions.push(`${now.toLocaleTimeString()} ${action}`)
-    if (bot.autoShepherd.lastActions.length > 30) {
-      bot.autoShepherd.lastActions.shift()
-    }
-  }
-
   bot.autoShepherd = {
     autoCraftShears: true,
     lastActions: [],
+    addLastAction: (action: string) => {
+      const now = new Date()
+      bot.autoShepherd.lastActions.push(`${now.toLocaleTimeString()} ${action}`)
+      if (bot.autoShepherd.lastActions.length > 30) {
+        bot.autoShepherd.lastActions.shift()
+      }
+    },
     getItems: async () => {
       const actionStart = Date.now()
-      addLastAction('getItems')
+      bot.autoShepherd.addLastAction('getItems')
       let maxCycles = 5
       const droppedItems = Object.values(bot.entities).filter(e => {
         try {
@@ -103,7 +103,7 @@ export function inject(bot: Bot, options: BotOptions): void {
     },
     getWool: async () => {
       const actionStart = Date.now()
-      addLastAction('getWool')
+      bot.autoShepherd.addLastAction('getWool')
       const maxCycles = 5
       const unSheeredSheep = Object.values(bot.entities).filter(e => {
         return e.name === 'sheep' && e.position.distanceTo(bot.entity.position) < 45 && (e.metadata[13] as unknown as number) < 16 && (e.metadata[12] as unknown as boolean) == false
@@ -121,7 +121,7 @@ export function inject(bot: Bot, options: BotOptions): void {
         const sheep = unSheeredSheep.pop()
         if (!sheep) break
         try {
-          addLastAction('getWool->approaching sheep')
+          bot.autoShepherd.addLastAction('getWool->approaching sheep')
           const walking = bot.pathfinder.goto(new goals.GoalFollow(sheep, 1))
           try {
             await Promise.race([walking, timeoutAfter(20_000)])
@@ -135,10 +135,10 @@ export function inject(bot: Bot, options: BotOptions): void {
             console.error('No more shears left')
             return
           }
-          addLastAction('getWool->equipping shears')
+          bot.autoShepherd.addLastAction('getWool->equipping shears')
           await Promise.race([bot.equip(shears.type, 'hand'), timeoutAfter(5_000)])
           await wait(100)
-          addLastAction('getWool->shearing sheep')
+          bot.autoShepherd.addLastAction('getWool->shearing sheep')
           await bot.activateEntity(sheep)
         } catch (err) {
           if ((err as Error).name !== 'NoPath') console.error(err)
@@ -147,7 +147,7 @@ export function inject(bot: Bot, options: BotOptions): void {
     },
     depositItems: async () => {
       const actionStart = Date.now()
-      addLastAction('depositItems')
+      bot.autoShepherd.addLastAction('depositItems')
       shouldDeposit = false
       const woolId = mcData.itemsByName.wool.id
       let itemsDeposited = 0
@@ -243,7 +243,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       return isRunning
     },
     startSheering: () => {
-      addLastAction('startSheering')
+      bot.autoShepherd.addLastAction('startSheering')
       if (isRunning) {
         console.info('Already running')
         return
@@ -256,7 +256,7 @@ export function inject(bot: Bot, options: BotOptions): void {
         .catch(console.error)
     },
     stopSheering: async () => {
-      addLastAction('stopSheering')
+      bot.autoShepherd.addLastAction('stopSheering')
       if (shouldStop) {
         console.info('Already stopping')
         return
@@ -266,7 +266,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       isRunning = false
     },
     craftShears: async () => {
-      addLastAction('craftShears')
+      bot.autoShepherd.addLastAction('craftShears')
       const ironIngotSum = bot.inventory.items().filter(i => i.type === IronIngot.id).reduce((a, b) => a + b.count, 0)
       if (ironIngotSum < 2) {
         console.info('Not enough iron ingots')
@@ -368,7 +368,7 @@ export function inject(bot: Bot, options: BotOptions): void {
   }
 
   const cycle = async () => {
-    addLastAction('cycle start')
+    bot.autoShepherd.addLastAction('cycle start')
     if (shouldStop) {
       isRunning = false
       bot.autoShepherd.emitter.emit('cycle')
