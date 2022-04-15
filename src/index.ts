@@ -45,16 +45,24 @@ async function init() {
 
   let afkIntervalHandle: NodeJS.Timer | undefined = undefined;
   let actionTimeout: NodeJS.Timer | undefined;
+  let lastAction = 0
+  const watchdogTimeout = 60 * 4 * 1000
+
+  const initWatchdog = () => {
+    lastAction = Date.now()
+    actionTimeout = setInterval(() => {
+      const now = new Date()
+      if (now.getTime() - lastAction > watchdogTimeout) {
+        console.info('Disconnect due to stuck', now.toLocaleTimeString())
+        console.info('Last actions', bot.autoShepherd.lastActions)
+        bot.end()
+      }
+    }, watchdogTimeout)
+  }
   
   const resetActionTimeout = () => {
-    if (actionTimeout) clearTimeout(actionTimeout)
-    bot.autoShepherd.addLastAction('cycle reset')
-    actionTimeout = setTimeout(() => {
-      const now = new Date()
-      console.info('Disconnect due to stuck', now.toLocaleTimeString())
-      console.info('Last actions', bot.autoShepherd.lastActions)
-      bot.end()
-    }, 60 * 4 * 1000)
+    bot.autoShepherd.addLastAction('watchdog trigger')
+    lastAction = Date.now()
   }
 
   const handleReconnect = () => {
@@ -107,7 +115,7 @@ async function init() {
   // Wait for the bot to spawn. Also works for the 2b2t queue
   await once(bot, 'spawn')
 
-  resetActionTimeout()
+  initWatchdog()
   if (process.env.VIEWER === 'true') mineflayerViewer(bot, { port: 3000 })
   if (process.env.INV === 'true') inventoryViewer(bot, { port: 3001 })
   const mcData = MinecraftData(bot.version)
@@ -136,7 +144,7 @@ async function init() {
   bot.on('end', () => {
     console.info('Disconnected')
     if (afkIntervalHandle) clearInterval(afkIntervalHandle)
-    if (actionTimeout) clearTimeout(actionTimeout)
+    if (actionTimeout) clearInterval(actionTimeout)
     // @ts-ignore
     if (bot.viewer?.close) bot.viewer.close()
     rl.close()
