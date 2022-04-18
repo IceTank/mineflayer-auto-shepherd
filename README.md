@@ -19,11 +19,11 @@ Ideal setup is a closed space with grass for the sheep to regrow there wool on t
 6. Run it with `npm start`
 
 ## Environment variables (in .env)
-MCUSERNAME - Microsoft Username/Email
-MCPASSWORD - Password
-MCHOST - Host (Should be connect.2b2t.org for 2b)
-VIEWER - true|false. Set if the browser viewer should be used
-INV - true|false. Set if the inventory viewer should be used
+- MCUSERNAME - Microsoft Username/Email
+- MCPASSWORD - Password
+- MCHOST - Host (Should be connect.2b2t.org for 2b)
+- VIEWER - true|false. Set if the browser viewer should be used
+- INV - true|false. Set if the inventory viewer should be used
 
 ## Build docker image
 `docker build . -t mineflayer-auto-shepherd`
