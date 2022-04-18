@@ -19,17 +19,18 @@ Ideal setup is a closed space with grass for the sheep to regrow there wool on t
 6. Run it with `npm start`
 
 ## Environment variables (in .env)
-- MCUSERNAME - Microsoft Username/Email
-- MCPASSWORD - Password
-- MCHOST - Host (Should be connect.2b2t.org for 2b)
-- VIEWER - true|false. Set if the browser viewer should be used
-- INV - true|false. Set if the inventory viewer should be used
+- `MCUSERNAME=` Microsoft Email
+- `MCPASSWORD=` Password
+- `MCHOST=` Host (Should be `connect.2b2t.org` for 2b)
+- `VIEWER=` `true`|`false`. Set if the browser world viewer should be used
+- `INV=` `true`|`false`. Set if the browser inventory viewer should be used
 
-## Build docker image
+## Docker
+### Build docker image
 `docker build . -t mineflayer-auto-shepherd`
 
-## Launch docker image
+### Launch docker image
 `docker run --rm -itd -v ${pwd}/nmp-cache:/src/app/nmp-cache --name mineflayer-auto-shepherd -p 25565:25566 -p 3001:3001 mineflayer-auto-shepherd`
 
-## View logs
+### View logs
 `docker logs -f mineflayer-auto-shepherd`
