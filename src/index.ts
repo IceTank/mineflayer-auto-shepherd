@@ -95,7 +95,8 @@ async function init() {
         const match = chatString.match(/(\d+)/)
         if (!match) return
         const num = Number(match[0])
-        if (num !== lastQueuePosition) {
+        if (isNaN(num)) return
+        if ((num < 10 && num < lastQueuePosition) || num <= Math.floor(lastQueuePosition / 10) * 10) {
           lastQueuePosition = num
           console.info('Queue position', num)
         }
