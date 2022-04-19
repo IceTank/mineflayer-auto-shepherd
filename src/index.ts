@@ -67,7 +67,7 @@ async function init() {
 
   const handleReconnect = () => {
     const now = Date.now()
-    if (now - lastDisconnect < 60 * 1000) {
+    if ((now - lastDisconnect) + disconnectCooldown < 60 * 1000) {
       disconnectCooldown += 30_000
       disconnectCooldown = Math.min(disconnectCooldown, maxDisconnectCooldown)
     } else {
