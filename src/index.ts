@@ -33,7 +33,8 @@ async function init() {
     password: process.env.MCPASSWORD,
     auth: 'microsoft',
     profilesFolder: nmpCache,
-    version: '1.12.2'
+    version: '1.12.2',
+    checkTimeoutInterval: 90_000
   })
   
   // const conn = makeBot({
