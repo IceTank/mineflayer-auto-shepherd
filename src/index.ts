@@ -96,7 +96,7 @@ async function init() {
         if (!match) return
         const num = Number(match[0])
         if (isNaN(num)) return
-        if ((num < 10 && num < lastQueuePosition) || (num <= Math.floor(lastQueuePosition / 10) * 10) || lastQueuePosition === 0) {
+        if ((num < 10 && num < lastQueuePosition) || (num < Math.floor(lastQueuePosition / 10) * 10 + 1) || lastQueuePosition === 0) {
           lastQueuePosition = num
           console.info('Queue position', num)
         }
