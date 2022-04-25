@@ -364,41 +364,51 @@ export function inject(bot: Bot, options: BotOptions): void {
   }
 
   const startSheering = async () => {
-    cycle()
-  }
-
-  const cycle = async () => {
-    bot.autoShepherd.addLastAction('cycle start')
-    if (shouldStop) {
-      isRunning = false
-      bot.autoShepherd.emitter.emit('cycle')
+    if (bot.autoShepherd.isRunning()) {
+      console.info('Already running')
       return
     }
-    isRunning = true
-    if (bot.inventory.emptySlotCount() < 2) await bot.autoShepherd.depositItems()
-    const shears = bot.inventory.items().find(i => i.name.includes('shears'))
-    if (!shears) {
-      if (!bot.autoShepherd.autoCraftShears) {
-        console.info('No more shears left')
-        botExit(0)
+    startCycling()
+      .catch(console.error)
+  }
+
+  const startCycling = async () => {
+    while (true) {
+      bot.autoShepherd.addLastAction('cycle start')
+      if (!bot.proxy.botIsControlling) {
+        await wait(5000)
+        continue
       }
-      console.info('Crafting new shears')
-      const success = await bot.autoShepherd.craftShears()
-      if (!success) {
-        console.info('No more shears left. Crafting shears failed')
-        botExit(1)
+      if (shouldStop) {
+        isRunning = false
+        bot.autoShepherd.emitter.emit('cycle')
+        return
       }
+      isRunning = true
+      if (bot.inventory.emptySlotCount() < 2) await bot.autoShepherd.depositItems()
+      const shears = bot.inventory.items().find(i => i.name.includes('shears'))
+      if (!shears) {
+        if (!bot.autoShepherd.autoCraftShears) {
+          if (!bot.proxy.botIsControlling) continue
+          console.info('No more shears left')
+          botExit(0)
+        }
+        console.info('Crafting new shears')
+        const success = await bot.autoShepherd.craftShears()
+        if (!success) {
+          if (!bot.proxy.botIsControlling) continue
+          console.info('No more shears left. Crafting shears failed')
+          botExit(1)
+        }
+      }
+      // console.info('Getting wool')
+      await bot.autoShepherd.getWool()
+      await wait(1000)
+      // console.info('Getting dropped items')
+      await bot.autoShepherd.getItems()
+      await wait(1000)
+      bot.autoShepherd.emitter.emit('cycle')
+      await wait(1000)
     }
-    // console.info('Getting wool')
-    await bot.autoShepherd.getWool()
-    await wait(1000)
-    // console.info('Getting dropped items')
-    await bot.autoShepherd.getItems()
-    await wait(1000)
-    bot.autoShepherd.emitter.emit('cycle')
-    setTimeout(() => {
-      cycle()
-        .catch(console.error)
-    }, 1000)
   }
 }
