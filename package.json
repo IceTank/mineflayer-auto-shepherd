@@ -19,8 +19,8 @@
     "mineflayer-auto-eat": "^2.3.3",
     "mineflayer-auto-shepherd": "./dist",
     "mineflayer-pathfinder": "^1.8.0",
-    "mineflayer-proxy-inspector": "github:IceTank/mineflayer-proxy-inspector",
-    "mineflayer-web-inventory": "github:imharvol/mineflayer-web-inventory#wool",
+    "mineflayer-proxy-inspector": "^1.0.0",
+    "mineflayer-web-inventory": "^1.8.0",
     "prismarine-entity": "^2.1.0",
     "prismarine-viewer": "^1.21.0",
     "prismarine-windows": "github:IceTank/prismarine-windows#wrong-assertion-workaround"
