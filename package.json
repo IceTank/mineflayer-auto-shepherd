@@ -20,7 +20,7 @@
     "mineflayer-auto-shepherd": "./dist",
     "mineflayer-pathfinder": "^1.8.0",
     "mineflayer-proxy-inspector": "^1.0.0",
-    "mineflayer-web-inventory": "^1.8.0",
+    "mineflayer-web-inventory": "^1.8.1",
     "prismarine-entity": "^2.1.0",
     "prismarine-viewer": "^1.21.0",
     "prismarine-windows": "github:IceTank/prismarine-windows#wrong-assertion-workaround"
