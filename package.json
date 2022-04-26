@@ -18,7 +18,7 @@
     "mineflayer": "^4.2.0",
     "mineflayer-auto-eat": "^2.3.3",
     "mineflayer-auto-shepherd": "./dist",
-    "mineflayer-pathfinder": "^1.8.0",
+    "mineflayer-pathfinder": "^2.1.0",
     "mineflayer-proxy-inspector": "^1.0.0",
     "mineflayer-web-inventory": "^1.8.1",
     "prismarine-entity": "^2.1.0",
