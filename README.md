@@ -34,6 +34,7 @@ Ideal setup is a closed space with grass for the sheep to regrow there wool on t
 
 ### Launch docker image
 `docker run --rm -itd -v ${pwd}/nmp-cache:/src/app/nmp-cache --name mineflayer-auto-shepherd -p 25565:25566 -p 3001:3001 mineflayer-auto-shepherd`
+`docker run --rm -it -v ${pwd}/nmp-cache:/src/app/nmp-cache --name mineflayer-auto-shepherd -p 25565:25566 -e MCHOST=2b2t.org -p 3001:3001 mineflayer-auto-shepherd`
 
 ### View logs
 `docker logs -f mineflayer-auto-shepherd`
