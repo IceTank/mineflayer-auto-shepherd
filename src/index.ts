@@ -91,8 +91,8 @@ async function init() {
   bot.on('end', handleReconnect)
   bot.on('message', (chatMessage) => {
     const chatString = chatMessage.toString()
-    if (chatString.startsWith('Position in queue:')) {
-      try {
+    try {
+      if (chatString.startsWith('Position in queue:')) {
         const match = chatString.match(/(\d+)/)
         if (!match) return
         const num = Number(match[0])
@@ -101,9 +101,11 @@ async function init() {
           lastQueuePosition = num
           console.info('Queue position', num)
         }
-      } catch (err) {
-        
+      } else {
+        console.info(`> ${chatMessage.toString()}`)
       }
+    } catch (err) {
+      
     }
     fs.appendFile(chatLog, chatString + '\n')
       .catch(console.error)
