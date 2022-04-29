@@ -17,6 +17,7 @@ type BotModes = 'idle' | 'running' | 'stopped' | 'paused'
 interface AutoShepherd {
   autoCraftShears: boolean
   lastActions: string[]
+  start: () => void
   addLastAction: (action: string) => void
   getItems: () => Promise<void>
   getWool: () => Promise<void>
@@ -59,6 +60,24 @@ export function inject(bot: Bot, options: BotOptions): void {
   bot.autoShepherd = {
     autoCraftShears: true,
     lastActions: [],
+    start: () => {
+      if (isRunning) {
+        console.info('Already running')
+        return
+      }
+      startTime = new Date()
+      const defaultMovement = new Movements(bot, mcData)
+      defaultMovement.canDig = false
+      defaultMovement.scafoldingBlocks = []
+      defaultMovement.allowSprinting = false
+      bot.pathfinder.setMovements(defaultMovement)
+      if (bot.autoShepherd.isRunning()) {
+        console.info('Already running')
+        return
+      }
+      startCycling()
+        .catch(console.error)
+    },
     addLastAction: (action: string) => {
       const now = new Date()
       bot.autoShepherd.lastActions.push(`${now.toLocaleTimeString()} ${action}`)
@@ -247,22 +266,11 @@ export function inject(bot: Bot, options: BotOptions): void {
       return isRunning
     },
     startSheering: () => {
-      const defaultMovement = new Movements(bot, mcData)
-      defaultMovement.canDig = false
-      defaultMovement.scafoldingBlocks = []
-      defaultMovement.allowSprinting = false
-      bot.pathfinder.setMovements(defaultMovement)
-      bot.autoShepherd.switchMode('running')
-      bot.autoShepherd.addLastAction('startSheering')
-      if (isRunning) {
-        console.info('Already running')
-        return
-      }
-      startTime = new Date()
+      bot.autoShepherd.start()
       itemsDepositedTotal = 0
       console.info('Starting')
-      startSheering()
-        .catch(console.error)
+      bot.autoShepherd.addLastAction('startSheering')
+      bot.autoShepherd.switchMode('running')
     },
     stopSheering: async () => {
       bot.autoShepherd.switchMode('stopped')
@@ -379,15 +387,6 @@ export function inject(bot: Bot, options: BotOptions): void {
       await wait(InventoryClickDelay)
     }
     return true
-  }
-
-  const startSheering = async () => {
-    if (bot.autoShepherd.isRunning()) {
-      console.info('Already running')
-      return
-    }
-    startCycling()
-      .catch(console.error)
   }
 
   const randomIdleAction = async () => {

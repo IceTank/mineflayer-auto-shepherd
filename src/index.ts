@@ -215,7 +215,7 @@ async function init() {
     exitBot()
   })
 
-  bot.autoShepherd.startSheering()
+  bot.autoShepherd.start()
 }
 
 // Catch MaxListenersExceededWarning
