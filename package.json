@@ -1,6 +1,6 @@
 {
   "name": "mineflayer-auto-shepherd",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -18,7 +18,7 @@
     "mineflayer": "^4.2.0",
     "mineflayer-auto-eat": "^2.3.3",
     "mineflayer-auto-shepherd": "./dist",
-    "mineflayer-pathfinder": "github:PrismarineJS/mineflayer-pathfinder",
+    "mineflayer-pathfinder": "^2.1.1",
     "mineflayer-proxy-inspector": "^1.0.0",
     "mineflayer-web-inventory": "^1.8.1",
     "prismarine-entity": "^2.1.0",

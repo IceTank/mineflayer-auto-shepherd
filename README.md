@@ -24,6 +24,7 @@ Ideal setup is a closed space with grass for the sheep to regrow there wool on t
 - `MCHOST=` Host (Should be `connect.2b2t.org` for 2b)
 - `VIEWER=` `true`|`false`. Set if the browser world viewer should be used
 - `INV=` `true`|`false`. Set if the browser inventory viewer should be used
+- `START_IDLE=` `true`|`false`. Start in mode idle or start in mode running
 
 ## pm2 start
 `pm2 start npm --no-autorestart -- run run`

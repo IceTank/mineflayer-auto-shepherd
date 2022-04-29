@@ -1,16 +1,18 @@
 import { Bot, BotOptions, Chest } from "mineflayer";
-import { goals } from "mineflayer-pathfinder";
 import Data from "minecraft-data";
 import { promisify } from "util";
 import { EventEmitter } from "stream";
 import { once } from "events";
 const wait = promisify(setTimeout)
+import { Movements, goals } from "mineflayer-pathfinder";
 
 declare module 'mineflayer' {
   interface Bot {
     autoShepherd: AutoShepherd
   }
 }
+
+type BotModes = 'idle' | 'running' | 'stopped' | 'paused'
 
 interface AutoShepherd {
   autoCraftShears: boolean
@@ -24,12 +26,16 @@ interface AutoShepherd {
   isRunning: () => boolean
   craftShears: () => Promise<boolean>
   logResults: () => void
+  switchMode: (mode: BotModes) => void
+  pause: () => void
+  unpause: () => void
 
   emitter: AutoShepherdEmitter
 }
 
 interface AutoShepherdEmitter extends EventEmitter {
   on(event: 'cycle', listener: () => void): this
+  on(event: 'alive', listener: () => void): this
 }
 
 const InventoryClickDelay = 200
@@ -40,8 +46,6 @@ async function timeoutAfter(timeout = 5000): Promise<never> {
 }
 
 export function inject(bot: Bot, options: BotOptions): void {
-  let shouldDeposit: boolean = false
-  let shouldStop: boolean = false
   let isRunning = false
   const mcData = Data(bot.version)
   const IronIngot = mcData.itemsByName.iron_ingot
@@ -49,6 +53,8 @@ export function inject(bot: Bot, options: BotOptions): void {
 
   let startTime: Date = new Date()
   let itemsDepositedTotal: number = 0
+  let currentMode: BotModes = 'idle'
+  let lastMode: BotModes = 'idle'
 
   bot.autoShepherd = {
     autoCraftShears: true,
@@ -146,9 +152,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       }
     },
     depositItems: async () => {
-      const actionStart = Date.now()
       bot.autoShepherd.addLastAction('depositItems')
-      shouldDeposit = false
       const woolId = mcData.itemsByName.wool.id
       let itemsDeposited = 0
       // console.info('Starting to deposit items')
@@ -243,12 +247,17 @@ export function inject(bot: Bot, options: BotOptions): void {
       return isRunning
     },
     startSheering: () => {
+      const defaultMovement = new Movements(bot, mcData)
+      defaultMovement.canDig = false
+      defaultMovement.scafoldingBlocks = []
+      defaultMovement.allowSprinting = false
+      bot.pathfinder.setMovements(defaultMovement)
+      bot.autoShepherd.switchMode('running')
       bot.autoShepherd.addLastAction('startSheering')
       if (isRunning) {
         console.info('Already running')
         return
       }
-      shouldStop = false
       startTime = new Date()
       itemsDepositedTotal = 0
       console.info('Starting')
@@ -256,12 +265,8 @@ export function inject(bot: Bot, options: BotOptions): void {
         .catch(console.error)
     },
     stopSheering: async () => {
+      bot.autoShepherd.switchMode('stopped')
       bot.autoShepherd.addLastAction('stopSheering')
-      if (shouldStop) {
-        console.info('Already stopping')
-        return
-      }
-      shouldStop = true
       await once(bot.autoShepherd.emitter, 'cycle')
       isRunning = false
     },
@@ -323,6 +328,19 @@ export function inject(bot: Bot, options: BotOptions): void {
       const itemsPerHour = Math.floor(itemsTotal / (timeTaken / 3_600_000))
       console.info(`Farmed ${itemsPerHour} items per hour for a total off ${itemsTotal} items`)
     },
+    switchMode: (mode: BotModes) => {
+      if (mode === currentMode) return
+      lastMode = currentMode
+      currentMode = mode
+    },
+    pause: () => {
+      bot.autoShepherd.switchMode('paused')
+      bot.autoShepherd.addLastAction('pause')
+    },
+    unpause: () => {
+      if (currentMode !== 'paused') return
+      bot.autoShepherd.switchMode(lastMode)
+    },
     emitter: new EventEmitter()
   }
 
@@ -372,17 +390,55 @@ export function inject(bot: Bot, options: BotOptions): void {
       .catch(console.error)
   }
 
+  const randomIdleAction = async () => {
+    try {
+      const randomAction = Math.floor(Math.random() * 2)
+      if (randomAction === 0) {
+        try {
+          // Look at random direction
+          const p = bot.lookAt(bot.entity.position.offset(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1))
+          await Promise.race([timeoutAfter(5000), p])
+        } catch (err) { }
+      } else if (randomAction === 1) {
+        // Move to random offset position
+        const randomXZOffset = bot.entity.position.offset(Math.random() * 2 - 1, 0, Math.random() * 2 - 1)
+        try {
+          const p = bot.pathfinder.goto(new goals.GoalBlock(randomXZOffset.x, randomXZOffset.y, randomXZOffset.z))
+          await Promise.race([timeoutAfter(5000), p])
+        } catch (err) {
+          bot.pathfinder.setGoal(null)
+        }
+      }
+      return
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   const startCycling = async () => {
     while (true) {
       bot.autoShepherd.addLastAction('cycle start')
+      bot.autoShepherd.emitter.emit('alive')
       if (!bot.proxy.botIsControlling) {
         await wait(5000)
         continue
       }
-      if (shouldStop) {
+      // Wait for the last cycle to finish then switch isRunning to false
+      if (currentMode === 'stopped') {
         isRunning = false
-        bot.autoShepherd.emitter.emit('cycle')
         return
+      }
+      if (currentMode === 'paused') {
+        await wait(1000)
+        continue
+      }
+      if (currentMode === 'idle') {
+        await wait(1000)
+        // Don't move all the time
+        if (Math.random() < 0.1) {
+          await randomIdleAction()
+        }
+        continue
       }
       isRunning = true
       if (bot.inventory.emptySlotCount() < 2) await bot.autoShepherd.depositItems()

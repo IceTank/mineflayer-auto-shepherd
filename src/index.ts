@@ -1,9 +1,8 @@
 import * as mineflayer from "mineflayer"
 import dotenv from "dotenv"
-import { Movements, pathfinder } from "mineflayer-pathfinder"
+import { pathfinder } from "mineflayer-pathfinder"
 const mineflayerViewer = require('prismarine-viewer').mineflayer
 import autoeat from "mineflayer-auto-eat";
-import MinecraftData from "minecraft-data";
 import { once } from "events";
 // @ts-ignore
 import inventoryViewer = require('mineflayer-web-inventory')
@@ -118,17 +117,16 @@ async function init() {
 
   // Wait for the bot to spawn. Also works for the 2b2t queue
   await once(bot, 'spawn')
+  // ################## After spawn ##################
 
   initWatchdog()
   if (process.env.VIEWER === 'true') mineflayerViewer(bot, { port: 3000 })
   if (process.env.INV === 'true') inventoryViewer(bot, { port: 3001 })
-  const mcData = MinecraftData(bot.version)
-
-  const defaultMovement = new Movements(bot, mcData)
-  defaultMovement.canDig = false
-  defaultMovement.scafoldingBlocks = []
-  defaultMovement.allowSprinting = false
-  bot.pathfinder.setMovements(defaultMovement)
+  if (process.env.START_IDLE === 'true') {
+    bot.autoShepherd.switchMode('idle')
+  } else {
+    bot.autoShepherd.switchMode('running')
+  }
   // @ts-ignore
   bot.autoEat.options.priority = "foodPoints"
   // @ts-ignore
@@ -177,7 +175,7 @@ async function init() {
     }
   })
 
-  bot.autoShepherd.emitter.on('cycle', () => {
+  bot.autoShepherd.emitter.on('alive', () => {
     resetActionTimeout()
   })
 
