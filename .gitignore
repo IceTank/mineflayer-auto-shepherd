@@ -4,3 +4,4 @@ dist
 chat.txt
 package-lock.json
 nmp-cache
+*.tar
