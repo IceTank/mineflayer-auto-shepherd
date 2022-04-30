@@ -19,7 +19,7 @@ ENV MCHOST="connect.2b2t.org" \
   VIEWER=false \
   INV=true
 # 3001 = Inventory Viewer; 3000 = Web viewer; 25566 = Minecraft server
-EXPOSE 25566 \
+EXPOSE 25566:25566/tcp \
   3001 \
   3000
 
