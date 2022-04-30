@@ -35,8 +35,8 @@ Ideal setup is a closed space with grass for the sheep to regrow there wool on t
 
 ### Launch docker image
 When connection from docker to localhost use host.docker.internal
-`docker run --rm -itd -v $(pwd)/nmp-cache:/src/app/nmp-cache --name mineflayer-auto-shepherd mineflayer-auto-shepherd`
-`docker run --rm -it -v $(pwd)/nmp-cache:/src/app/nmp-cache --name mineflayer-auto-shepherd mineflayer-auto-shepherd`
+`docker run --rm -itd -v $(pwd)/nmp-cache:/src/app/nmp-cache -p 25566:25566/tcp -p 3000-3001 --name mineflayer-auto-shepherd mineflayer-auto-shepherd`
+`docker run --rm -it -v $(pwd)/nmp-cache:/src/app/nmp-cache -p 25566:25566/tcp -p 3000-3001 --name mineflayer-auto-shepherd mineflayer-auto-shepherd`
 
 ### View logs
 `docker logs -f mineflayer-auto-shepherd`
