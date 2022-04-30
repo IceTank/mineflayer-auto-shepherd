@@ -47,6 +47,7 @@ async function init() {
   let actionTimeout: NodeJS.Timer | undefined;
   let lastAction = 0
   const watchdogTimeout = 60 * 4 * 1000
+  let logNoneQueueChat = true
 
   const initWatchdog = () => {
     lastAction = Date.now()
@@ -100,7 +101,7 @@ async function init() {
           lastQueuePosition = num
           console.info('Queue position', num)
         }
-      } else {
+      } else if (logNoneQueueChat) {
         console.info(`> ${chatMessage.toString()}`)
       }
     } catch (err) {
@@ -118,6 +119,8 @@ async function init() {
   // Wait for the bot to spawn. Also works for the 2b2t queue
   await once(bot, 'spawn')
   // ################## After spawn ##################
+
+  logNoneQueueChat = false
 
   initWatchdog()
   if (process.env.VIEWER === 'true') mineflayerViewer(bot, { port: 3000 })
