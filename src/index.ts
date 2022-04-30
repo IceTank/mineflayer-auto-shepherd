@@ -48,6 +48,8 @@ async function init() {
   let lastAction = 0
   const watchdogTimeout = 60 * 4 * 1000
   let logNoneQueueChat = true
+  let loginDate: Date | null = null
+  let spawnAbortController = new AbortController()
 
   const initWatchdog = () => {
     lastAction = Date.now()
@@ -76,6 +78,13 @@ async function init() {
     }
     lastDisconnect = now
     console.info(`Disconnected. Restarting in ${30 + Math.floor(disconnectCooldown / 1000)}sec`)
+    if (loginDate) {
+      const timeConnected = now - loginDate.getTime()
+      // Log how long the bot was connected in hours and minutes
+      console.info(`Bot was connected for ${Math.floor(timeConnected / 1000 / 60 / 60)}h ${Math.floor(timeConnected / 1000 / 60)}m`)
+    }
+    bot.removeAllListeners()
+    spawnAbortController.abort()
     setTimeout(() => {
       init()
         .catch(console.error)
@@ -86,6 +95,9 @@ async function init() {
 
   // @ts-ignore-error
   bot = conn.bot
+  bot.on('login', () => {
+    loginDate = new Date()
+  })
   bot.on('error', console.error)
   bot.on('kicked', (reason) => console.info('Kicked for reason', reason))
   bot.on('end', handleReconnect)
@@ -116,8 +128,20 @@ async function init() {
   // @ts-ignore
   bot.autoEat.disable()
 
-  // Wait for the bot to spawn. Also works for the 2b2t queue
-  await once(bot, 'spawn')
+  // Wait for the bot to spawn. Also works for the 2b2t queue.
+  // Abort when the bot disconnects while in queue.
+  try {
+    await once(bot, 'spawn', {
+      signal: spawnAbortController.signal
+    })
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      return
+    } else {
+      console.error(err)
+      return
+    }
+  }
   // ################## After spawn ##################
 
   logNoneQueueChat = false
