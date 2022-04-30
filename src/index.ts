@@ -25,6 +25,10 @@ let disconnectCooldown = 0
 let maxDisconnectCooldown = 10 * 60 * 1000 // 10 minutes
 let lastDisconnect = 0
 
+function ringConsoleBell() {
+  console.info('\x07')
+}
+
 async function init() {
   const conn = makeBot({
     host: process.env.MCHOST,
@@ -113,6 +117,9 @@ async function init() {
           lastQueuePosition = num
           console.info('Queue position', num)
         }
+      } else if (chatString.startsWith('Connecting to the server...')) {
+        console.info(chatString)
+        ringConsoleBell()
       } else if (logNoneQueueChat) {
         console.info(`> ${chatMessage.toString()}`)
       }
