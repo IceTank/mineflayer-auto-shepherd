@@ -18,7 +18,9 @@ COPY --from=build /src/app/package.json .
 ENV MCHOST="connect.2b2t.org" \
   VIEWER=false \
   INV=true
-EXPOSE 25565 \
-  3001
+# 3001 = Inventory Viewer; 3000 = Web viewer; 25566 = Minecraft server
+EXPOSE 25566 \
+  3001 \
+  3000
 
 ENTRYPOINT [ "npm", "run", "run" ]
