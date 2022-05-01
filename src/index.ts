@@ -101,6 +101,7 @@ async function init() {
   bot = conn.bot
   bot.on('login', () => {
     loginDate = new Date()
+    console.info('Login with username', bot.username)
   })
   bot.on('error', console.error)
   bot.on('kicked', (reason) => console.info('Kicked for reason', reason))
