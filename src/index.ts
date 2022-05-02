@@ -13,6 +13,9 @@ import { inject as autoShepherdPlugin } from "./plugins/autoShepherd";
 import path from "path";
 import { promises as fs } from "fs";
 import readline from "readline";
+const { default: fetch } = require('node-fetch');
+
+const queueLengthAPI = 'https://2b2t.space/queue'
 
 const chatLog = path.join(__dirname, '../chat.txt')
 const nmpCache = path.join(__dirname, '../nmp-cache')
@@ -27,6 +30,24 @@ let lastDisconnect = 0
 
 function ringConsoleBell() {
   console.info('\x07')
+}
+
+/*
+{"updatedAt":1651519960629,"queueLength":361}
+*/
+interface QueueLengthAPIResponse {
+  updatedAt: number
+  queueLength: number
+}
+
+async function getQueueLength() {
+  const response = await fetch(queueLengthAPI, {
+    headers: {
+      'User-Agent': 'Node-fetch auto-shepherd'
+    }
+  })
+  const json = await response.json() as QueueLengthAPIResponse
+  return json.queueLength
 }
 
 async function init() {
@@ -259,4 +280,55 @@ process.on('warning', (warning) => {
   console.warn(warning.stack)
 })
 
-init()
+async function connectWhenReady(date: Date) {
+  let logCounter = 0
+  while (true) {
+    logCounter += 1
+    try {
+      const queueLength = await getQueueLength()
+      const now = Date.now() / 1000
+      const timeToConnect = date.getTime() / 1000
+      // console.info(timeToConnect - now)
+      const secondsToConnect = (timeToConnect - now) - (queueLength * 86)
+      if (logCounter % 15 === 0 || secondsToConnect < 15 * 60_000) {
+        console.info(`Connecting in ${Math.floor(secondsToConnect / 3600)}h ${Math.floor(secondsToConnect / 60 % 60)}m ${Math.floor(secondsToConnect) % 60}s`)
+      }
+      if (secondsToConnect < 0) {
+        console.info('Connecting. Queue length', queueLength, new Date().toLocaleString())
+        init()
+          .catch(console.error)
+        return
+      }
+      await wait(60_000)
+    } catch (err) {
+      console.error(err)
+      await wait(60_000)
+      continue
+    }
+  }
+}
+
+if (process.env.CONNECT_ON) {
+  try {
+    if (isNaN(Number(process.env.CONNECT_ON))) {
+      console.error(new Error('CONNECT_ON must be a number'))
+      process.exit(1)
+    }
+    const date = new Date(Number(process.env.CONNECT_ON))  
+    console.info('Should connect at', date.toLocaleString())
+    // Check if the date is in the past
+    if (date.getTime() < Date.now()) {
+      console.error('Date is in the past')
+      process.exit(1)
+    }
+    // log Time until as hours:minutes
+    console.info('Time until', new Date(date.getTime() - Date.now()).toISOString().substr(11, 8))
+    connectWhenReady(date)
+      .catch(console.error)
+  } catch (err) {
+    console.info('Invalid date format', process.env.CONNECT_ON, err)
+    process.exit(1)
+  }
+} else {
+  init()
+}

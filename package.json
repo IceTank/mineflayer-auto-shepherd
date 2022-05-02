@@ -21,6 +21,7 @@
     "mineflayer-pathfinder": "^2.1.1",
     "mineflayer-proxy-inspector": "^1.0.1",
     "mineflayer-web-inventory": "^1.8.1",
+    "node-fetch": "^2.6.7",
     "prismarine-entity": "^2.1.0",
     "prismarine-viewer": "^1.21.0",
     "prismarine-windows": "github:IceTank/prismarine-windows#wrong-assertion-workaround"
