@@ -290,7 +290,7 @@ async function connectWhenReady(date: Date) {
       const timeToConnect = date.getTime() / 1000
       // console.info(timeToConnect - now)
       const secondsToConnect = (timeToConnect - now) - (queueLength * 86)
-      if (logCounter % 15 === 0 || secondsToConnect < 15 * 60_000) {
+      if (logCounter % 15 === 0 || secondsToConnect < 15 * 60) {
         console.info(`Connecting in ${Math.floor(secondsToConnect / 3600)}h ${Math.floor(secondsToConnect / 60 % 60)}m ${Math.floor(secondsToConnect) % 60}s`)
       }
       if (secondsToConnect < 0) {
