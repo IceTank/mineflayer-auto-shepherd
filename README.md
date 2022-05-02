@@ -25,6 +25,7 @@ Ideal setup is a closed space with grass for the sheep to regrow there wool on t
 - `VIEWER=` `true`|`false`. Set if the browser world viewer should be used
 - `INV=` `true`|`false`. Set if the browser inventory viewer should be used
 - `START_IDLE=` `true`|`false`. Start in mode idle or start in mode running
+- `CONNECT_ON=` `number`. Unix timestamp in milliseconds. When the bot should connect to the server
 
 ## pm2 start
 `pm2 start npm --no-autorestart -- run run`
