@@ -71,10 +71,6 @@ export function inject(bot: Bot, options: BotOptions): void {
       defaultMovement.scafoldingBlocks = []
       defaultMovement.allowSprinting = false
       bot.pathfinder.setMovements(defaultMovement)
-      if (bot.autoShepherd.isRunning()) {
-        console.info('Already running')
-        return
-      }
       startCycling()
         .catch(console.error)
     },

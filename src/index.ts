@@ -106,7 +106,9 @@ async function init() {
     if (loginDate) {
       const timeConnected = now - loginDate.getTime()
       // Log how long the bot was connected in hours and minutes
-      console.info(`Bot was connected for ${Math.floor(timeConnected / 1000 / 60 / 60)}h ${Math.floor(timeConnected / 1000 / 60)}m`)
+      const hoursConnected = Math.floor(timeConnected / (1000 * 60 * 60))
+      const minutesConnected = Math.floor((timeConnected - hoursConnected * 1000 * 60 * 60) / (1000 * 60))
+      console.info(`Bot was connected for ${hoursConnected}h ${minutesConnected}m`)
     }
     bot.removeAllListeners()
     spawnAbortController.abort()
@@ -138,6 +140,7 @@ async function init() {
         if ((num < 10 && num < lastQueuePosition) || (num < Math.floor(lastQueuePosition / 10) * 10) || lastQueuePosition === 0) {
           lastQueuePosition = num
           console.info('Queue position', num)
+          
         }
       } else if (chatString.startsWith('Connecting to the server...')) {
         console.info(chatString)
