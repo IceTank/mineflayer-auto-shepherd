@@ -12,6 +12,9 @@ if (!version) {
 }
 
 async function init() {
+  const cmd0 = `git pull`
+  console.info(cmd0)
+  execSync(cmd0)
   const cmd1 = `docker build -t ${imageName} .`
   console.info(cmd1)
   execSync(cmd1)
