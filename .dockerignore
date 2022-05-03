@@ -3,3 +3,5 @@ nmp-cache
 dist
 chat.txt
 *.tar
+.build-env
+.env

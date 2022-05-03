@@ -1,7 +1,8 @@
 node_modules
 dist
-.env
 chat.txt
 package-lock.json
 nmp-cache
 *.tar
+.env
+.build-env
