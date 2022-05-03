@@ -1,7 +1,11 @@
 const package = require('./package.json')
-const { execSync } = require('child_process')
+const { exec } = require('child_process')
 const dotenv = require('dotenv')
-dotenv.config('./.build-env')
+const { once } = require('events')
+const path = require('path')
+dotenv.config({
+  path: path.join(__dirname, '.build-env')
+})
 
 const version = package.version
 const imageName = package.name
@@ -11,19 +15,27 @@ if (!version) {
   process.exit(1)
 }
 
+async function runCmd(command) {
+  console.info(command)
+  const process = exec(command)
+  process.stdout.on('data', data => {
+    console.log(data)
+  })
+  process.stderr.on('data', data => {
+    console.error(data)
+  })
+  await once(process, 'exit')
+}
+
 async function init() {
   const cmd0 = `git pull`
-  console.info(cmd0)
-  execSync(cmd0)
+  await runCmd(cmd0)
   const cmd1 = `docker build -t ${imageName} .`
-  console.info(cmd1)
-  execSync(cmd1)
+  await runCmd(cmd1)
   const cmd2 = `docker save ${imageName} -o ${imageName}-${version}.tar`
-  console.info(cmd2)
-  execSync(cmd2)
-  const cmd3 = `scp ./${imageName}-${version}.tar ${process.env.REMOTE_USER}:${process.env.REMOTE_PATH}`
-  console.info(cmd3)
-  execSync(cmd3)
+  await runCmd(cmd2)
+  const cmd3 = `scp ./${imageName}-${version}.tar ${process.env.REMOTE_USER}@${process.env.REMOTE_ADDRESS}:${process.env.REMOTE_PATH}`
+  await runCmd(cmd3)
 }
 
 init().catch(console.error)

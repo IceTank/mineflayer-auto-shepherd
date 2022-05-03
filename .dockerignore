@@ -5,3 +5,4 @@ chat.txt
 *.tar
 .build-env
 .env
+build.js
