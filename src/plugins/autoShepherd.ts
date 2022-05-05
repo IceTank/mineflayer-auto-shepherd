@@ -48,6 +48,7 @@ async function timeoutAfter(timeout = 5000): Promise<never> {
 
 export function inject(bot: Bot, options: BotOptions): void {
   let isRunning = false
+  let isAwaitingCycleStart = false
   const mcData = Data(bot.version)
   const IronIngot = mcData.itemsByName.iron_ingot
   const maxTimeInAction = 30_000
@@ -61,10 +62,11 @@ export function inject(bot: Bot, options: BotOptions): void {
     autoCraftShears: true,
     lastActions: [],
     start: () => {
-      if (isRunning) {
+      if (isRunning || isAwaitingCycleStart) {
         console.info('Already running')
         return
       }
+      isAwaitingCycleStart = true
       startTime = new Date()
       const defaultMovement = new Movements(bot, mcData)
       defaultMovement.canDig = false
@@ -81,7 +83,7 @@ export function inject(bot: Bot, options: BotOptions): void {
         bot.autoShepherd.lastActions.shift()
       }
     },
-    getItems: async () => {
+    getItems: async (): Promise<void> => {
       const actionStart = Date.now()
       bot.autoShepherd.addLastAction('getItems')
       let maxCycles = 5
@@ -101,6 +103,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       })
       let cycle = 0
       while (droppedItems.length !== 0 && actionStart + maxTimeInAction > Date.now() && cycle < maxCycles) {
+        if (!bot.autoShepherd.isRunning()) return
         cycle++
         droppedItems.sort((a, b) => {
           return b.position.distanceTo(bot.entity.position) - a.position.distanceTo(bot.entity.position)
@@ -122,7 +125,7 @@ export function inject(bot: Bot, options: BotOptions): void {
         }
       }
     },
-    getWool: async () => {
+    getWool: async (): Promise<void> => {
       const actionStart = Date.now()
       bot.autoShepherd.addLastAction('getWool')
       const maxCycles = 5
@@ -135,6 +138,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       if (unSheeredSheep.length === 0) return
       let cycel = 0
       while (unSheeredSheep.length !== 0 && actionStart + maxTimeInAction > Date.now() && cycel < maxCycles) {
+        if (!bot.autoShepherd.isRunning()) return
         cycel++
         unSheeredSheep.sort((a, b) => {
           return b.position.distanceTo(bot.entity.position) - a.position.distanceTo(bot.entity.position)
@@ -175,6 +179,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       const tryDeposit = async (window: Chest): Promise<boolean> => {
         // @ts-ignore
         while (window.findInventoryItem(woolId) !== null) {
+          if (!bot.autoShepherd.isRunning()) return false
           // @ts-expect-error
           const emptySlot = window.firstEmptyContainerSlot() as number | null
           if (emptySlot === null) return false
@@ -208,6 +213,7 @@ export function inject(bot: Bot, options: BotOptions): void {
         return false
       }
       for (const d of depositSpots) {
+        if (!bot.autoShepherd.isRunning()) return false
         let window: Chest | undefined = undefined
         try {
           const walking = bot.pathfinder.goto(new goals.GoalGetToBlock(d.x, d.y, d.z))
@@ -225,6 +231,7 @@ export function inject(bot: Bot, options: BotOptions): void {
           }
           console.info(`Depositing items into chest at ${containerBlock.position.toString()}`)
           for (let i = 0; i < 3; i++) {
+            if (!bot.autoShepherd.isRunning()) return false
             try {
               await Promise.race([bot.lookAt(containerBlock.position), timeoutAfter()])
               window = await Promise.race([bot.openChest(containerBlock), timeoutAfter()])
@@ -259,7 +266,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       }
     },
     isRunning: () => {
-      return isRunning
+      return isRunning || isAwaitingCycleStart
     },
     startSheering: () => {
       bot.autoShepherd.start()
@@ -288,6 +295,7 @@ export function inject(bot: Bot, options: BotOptions): void {
           return false
         }
       }
+      if (!bot.autoShepherd.isRunning()) return false
       // Place first iron ingot in crafting grid
       await bot.clickWindow(2, 1, 0)
       await wait(InventoryClickDelay)
@@ -298,6 +306,7 @@ export function inject(bot: Bot, options: BotOptions): void {
           return false
         }
       }
+      if (!bot.autoShepherd.isRunning()) return false
       // Place second iron ingot in crafting grid
       await bot.clickWindow(3, 1, 0)
       await wait(InventoryClickDelay)
@@ -308,6 +317,7 @@ export function inject(bot: Bot, options: BotOptions): void {
           return false
         }
       }
+      if (!bot.autoShepherd.isRunning()) return false
       // Click the crafting grid result slot
       // bot._client.on('transaction', console.info)
       await bot.clickWindow(0, 0, 0)
@@ -336,6 +346,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       if (mode === currentMode) return
       lastMode = currentMode
       currentMode = mode
+      if (!bot.autoShepherd.isRunning()) bot.autoShepherd.start()
     },
     pause: () => {
       bot.autoShepherd.switchMode('paused')
@@ -412,8 +423,10 @@ export function inject(bot: Bot, options: BotOptions): void {
 
   const startCycling = async () => {
     while (true) {
+      isAwaitingCycleStart = false
       bot.autoShepherd.addLastAction('cycle start')
       bot.autoShepherd.emitter.emit('alive')
+      // @ts-expect-error
       if (!bot.proxy.botIsControlling) {
         await wait(5000)
         continue
@@ -440,6 +453,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       const shears = bot.inventory.items().find(i => i.name.includes('shears'))
       if (!shears) {
         if (!bot.autoShepherd.autoCraftShears) {
+          // @ts-expect-error
           if (!bot.proxy.botIsControlling) continue
           console.info('No more shears left')
           botExit(0)
@@ -447,6 +461,7 @@ export function inject(bot: Bot, options: BotOptions): void {
         console.info('Crafting new shears')
         const success = await bot.autoShepherd.craftShears()
         if (!success) {
+          // @ts-expect-error
           if (!bot.proxy.botIsControlling) continue
           console.info('No more shears left. Crafting shears failed')
           botExit(1)

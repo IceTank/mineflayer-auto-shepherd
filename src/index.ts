@@ -8,12 +8,16 @@ import { once } from "events";
 import inventoryViewer = require('mineflayer-web-inventory')
 const wait = require('util').promisify(setTimeout)
 dotenv.config()
-import { makeBot } from "mineflayer-proxy-inspector";
+import { InspectorProxy } from "mineflayer-proxy-inspector";
 import { inject as autoShepherdPlugin } from "./plugins/autoShepherd";
 import path from "path";
 import { promises as fs } from "fs";
 import readline from "readline";
 const { default: fetch } = require('node-fetch');
+// const { MessageBuilder } = require('prismarine-chat')
+import PChat from 'prismarine-chat'
+import type { MessageBuilder as TypeMessageBuilder } from 'prismarine-chat'
+import type { Client } from 'minecraft-protocol'
 
 const queueLengthAPI = 'https://2b2t.space/queue'
 
@@ -51,7 +55,7 @@ async function getQueueLength() {
 }
 
 async function init() {
-  const conn = makeBot({
+  const proxy = new InspectorProxy({
     host: process.env.MCHOST,
     username: process.env.MCUSERNAME as string,
     password: process.env.MCPASSWORD,
@@ -61,11 +65,11 @@ async function init() {
     checkTimeoutInterval: 90_000
   })
   
-  // const conn = makeBot({
+  // const proxy = new InspectorProxy({
   //   host: 'localhost',
   //   username: 'TestBot',
-  //   // password: process.env.MCPASSWORD,
-  //   version: '1.12.2'
+  //   version: '1.12.2',
+  //   checkTimeoutInterval: 90_000
   // })
 
   let afkIntervalHandle: NodeJS.Timer | undefined = undefined;
@@ -75,6 +79,8 @@ async function init() {
   let logNoneQueueChat = true
   let loginDate: Date | null = null
   let spawnAbortController = new AbortController()
+  let lastQueuePosition = 0
+  let MessageBuilder: typeof TypeMessageBuilder | undefined
 
   const initWatchdog = () => {
     lastAction = Date.now()
@@ -117,15 +123,37 @@ async function init() {
         .catch(console.error)
     }, 30000 + disconnectCooldown)
   }
-  
-  let lastQueuePosition = 0
+
+  /**
+   * Send how long the proxy has been connected to the server
+   * @param client The connecting client
+   */
+  const sendWelcomeMessage = (client: Client) => {
+    if (!MessageBuilder) return
+    const connectedAt = loginDate ? loginDate.getTime() : 0
+    const secondsConnected = Math.floor((Date.now() - connectedAt) / 1000)
+    const hoursConnected = Math.floor(secondsConnected / (60 * 60))
+    const minutesConnected = Math.floor((secondsConnected - hoursConnected * 60 * 60) / 60)
+    const message = new MessageBuilder()
+    message.setColor('gold').setBold(true).setText('Proxy >> ').setBold(false)
+    message.setColor('green').setText(`Connected since ${hoursConnected}h ${minutesConnected % 60}m ${secondsConnected % 60}s`)
+    const mojangMessage = {
+      message: JSON.stringify(message.toJSON()),
+      position: 1
+    }
+    console.info('Welcome message', mojangMessage)
+    client.write('chat', mojangMessage)
+  }
 
   // @ts-ignore-error
-  bot = conn.bot
+  bot = proxy.conn.bot
   bot.on('login', () => {
     loginDate = new Date()
     console.info('Login with username', bot.username)
+    const { MessageBuilder: tmp } = PChat(bot.version)
+    MessageBuilder = tmp
   })
+
   bot.on('error', console.error)
   bot.on('kicked', (reason) => console.info('Kicked for reason', reason))
   bot.on('end', handleReconnect)
@@ -153,6 +181,9 @@ async function init() {
     }
     fs.appendFile(chatLog, chatString + '\n')
       .catch(console.error)
+  })
+  proxy.on('clientConnect', (client) => {
+    sendWelcomeMessage(client)
   })
 
   bot.loadPlugins([pathfinder, autoeat, autoShepherdPlugin])
@@ -253,7 +284,6 @@ async function init() {
     } else if (line === 'deposit') {
       bot.autoShepherd.stopSheering()
         .then(() => bot.autoShepherd.depositItems())
-        .then(() => bot.autoShepherd.startSheering())
         .catch(console.error)
     } else if (line === 'quit' || line === 'exit') {
       exitBot()
@@ -263,7 +293,6 @@ async function init() {
   function exitBot() {
     console.info('Exiting')
     bot.autoShepherd.stopSheering()
-      .then(() => bot.autoShepherd.depositItems())
       .then(() => bot.autoShepherd.logResults())
       .then(() => process.exit(0))
       .catch(console.error)
