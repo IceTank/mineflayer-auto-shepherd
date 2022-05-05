@@ -63,6 +63,8 @@ async function init() {
     profilesFolder: nmpCache,
     version: '1.12.2',
     checkTimeoutInterval: 90_000
+  }, {
+    motd: 'loading...',
   })
   
   // const proxy = new InspectorProxy({
@@ -81,6 +83,8 @@ async function init() {
   let spawnAbortController = new AbortController()
   let lastQueuePosition = 0
   let MessageBuilder: typeof TypeMessageBuilder | undefined
+  let proxyStatus: 'queue' | 'online' | 'offline' = 'offline'
+  let host = process.env.MCHOST
 
   const initWatchdog = () => {
     lastAction = Date.now()
@@ -144,10 +148,32 @@ async function init() {
     client.write('chat', mojangMessage)
   }
 
+  const updateMotd = () => {
+    let line1 = ''
+    let line2 = ''
+    let mHost = host ?? 'unknown'
+    if (!MessageBuilder) return
+    const nPre = '&2'
+    if (proxyStatus === 'queue') {
+      line1 = `${nPre}${bot.username}&r ${mHost} -> &6Queue`
+      line2 = `&7Position &6${lastQueuePosition}&r`
+    } else if (proxyStatus === 'online') {
+      const playerLength = Object.keys(bot.players).length
+      const itemAmount = bot.inventory.items().reduce((i, v) => i + v.count, 0);
+      const ironAmount = bot.inventory.items().filter(i => i.name === 'iron_ingot').reduce((i, v) => i + v.count, 0);
+      line1 = `${nPre}${bot.username}&r  ${mHost} -> &aOnline`
+      line2 = `&7Players &3${playerLength}&7 ⎜ Items &3${itemAmount}&7 ⎜ Iron left &3${ironAmount}`
+    }
+    // console.info('Setting motd to', line1, line2)
+    const motd = MessageBuilder.fromString(`${line1}\n${line2}`)
+    proxy.setChatMessageMotd(motd.toJSON())
+  }
+
   // @ts-ignore-error
   bot = proxy.conn.bot
   bot.on('login', () => {
     loginDate = new Date()
+    proxyStatus = 'queue'
     console.info('Login with username', bot.username)
     const { MessageBuilder: tmp } = PChat(bot.version)
     MessageBuilder = tmp
@@ -164,10 +190,12 @@ async function init() {
         if (!match) return
         const num = Number(match[0])
         if (isNaN(num)) return
-        if ((num < 10 && num < lastQueuePosition) || (num < Math.floor(lastQueuePosition / 10) * 10) || lastQueuePosition === 0) {
+        if (lastQueuePosition !== num) {
+          updateMotd()
+          if ((num < 10 && num < lastQueuePosition) || (num < Math.floor(lastQueuePosition / 10) * 10) || lastQueuePosition === 0) {
+            console.info('Queue position', num)
+          }
           lastQueuePosition = num
-          console.info('Queue position', num)
-          
         }
       } else if (chatString.startsWith('Connecting to the server...')) {
         console.info(chatString)
@@ -182,6 +210,7 @@ async function init() {
       .catch(console.error)
   })
   proxy.on('clientConnect', (client) => {
+    updateMotd()
     sendWelcomeMessage(client)
   })
 
@@ -206,7 +235,12 @@ async function init() {
   }
   // ################## After spawn ##################
 
+  proxyStatus = 'online'
   logNoneQueueChat = false
+  updateMotd()
+  const motdUpdateInterval = setInterval(() => {
+    updateMotd()
+  }, 15_000)
 
   initWatchdog()
   if (process.env.VIEWER === 'true') mineflayerViewer(bot, { port: 3000 })
@@ -236,6 +270,7 @@ async function init() {
     console.info('Disconnected')
     if (afkIntervalHandle) clearInterval(afkIntervalHandle)
     if (actionTimeout) clearInterval(actionTimeout)
+    clearInterval(motdUpdateInterval)
     // @ts-ignore
     if (bot.viewer?.close) bot.viewer.close()
     rl.close()

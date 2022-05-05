@@ -16,11 +16,12 @@
   "dependencies": {
     "@types/node": "^16.11.12",
     "dotenv": "^10.0.0",
+    "minecraft-protocol": "github:IceTank/node-minecraft-protocol#chatMessage-motd",
     "mineflayer": "^4.2.0",
     "mineflayer-auto-eat": "^2.3.3",
     "mineflayer-auto-shepherd": "./dist",
     "mineflayer-pathfinder": "^2.1.1",
-    "mineflayer-proxy-inspector": "^1.1.0",
+    "mineflayer-proxy-inspector": "github:IceTank/mineflayer-proxy-inspector#experimental",
     "mineflayer-web-inventory": "^1.8.1",
     "node-fetch": "^2.6.7",
     "prismarine-entity": "^2.1.0",

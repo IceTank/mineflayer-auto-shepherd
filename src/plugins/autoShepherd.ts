@@ -426,7 +426,6 @@ export function inject(bot: Bot, options: BotOptions): void {
       isAwaitingCycleStart = false
       bot.autoShepherd.addLastAction('cycle start')
       bot.autoShepherd.emitter.emit('alive')
-      // @ts-expect-error
       if (!bot.proxy.botIsControlling) {
         await wait(5000)
         continue
@@ -453,7 +452,6 @@ export function inject(bot: Bot, options: BotOptions): void {
       const shears = bot.inventory.items().find(i => i.name.includes('shears'))
       if (!shears) {
         if (!bot.autoShepherd.autoCraftShears) {
-          // @ts-expect-error
           if (!bot.proxy.botIsControlling) continue
           console.info('No more shears left')
           botExit(0)
@@ -461,7 +459,6 @@ export function inject(bot: Bot, options: BotOptions): void {
         console.info('Crafting new shears')
         const success = await bot.autoShepherd.craftShears()
         if (!success) {
-          // @ts-expect-error
           if (!bot.proxy.botIsControlling) continue
           console.info('No more shears left. Crafting shears failed')
           botExit(1)
