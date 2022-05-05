@@ -116,7 +116,6 @@ async function init() {
       const minutesConnected = Math.floor((timeConnected - hoursConnected * 1000 * 60 * 60) / (1000 * 60))
       console.info(`Bot was connected for ${hoursConnected}h ${minutesConnected}m`)
     }
-    bot.removeAllListeners()
     spawnAbortController.abort()
     setTimeout(() => {
       init()
