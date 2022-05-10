@@ -13,6 +13,7 @@ import { inject as autoShepherdPlugin } from "./plugins/autoShepherd";
 import path from "path";
 import { promises as fs } from "fs";
 import readline from "readline";
+import { toDate } from "./timeCalculator";
 const { default: fetch } = require('node-fetch');
 // const { MessageBuilder } = require('prismarine-chat')
 import PChat from 'prismarine-chat'
@@ -357,10 +358,10 @@ async function connectWhenReady(date: Date) {
       // console.info(timeToConnect - now)
       const secondsToConnect = (timeToConnect - now) - (queueLength * 86)
       if (logCounter % 15 === 0 || secondsToConnect < 15 * 60) {
-        console.info(`Connecting in ${Math.floor(secondsToConnect / 3600)}h ${Math.floor(secondsToConnect / 60 % 60)}m ${Math.floor(secondsToConnect) % 60}s`)
+        console.info(`Connecting in ${Math.floor(secondsToConnect / 3600)}h ${Math.floor(secondsToConnect / 60 % 60)}m ${Math.floor(secondsToConnect) % 60}s to reach end off queue in time`)
       }
       if (secondsToConnect < 0) {
-        console.info('Connecting. Queue length', queueLength, new Date().toLocaleString())
+        console.info('Connecting to server. Current queue length:', queueLength, 'date', new Date().toLocaleString())
         init()
           .catch(console.error)
         return
@@ -376,11 +377,18 @@ async function connectWhenReady(date: Date) {
 
 if (process.env.CONNECT_ON) {
   try {
-    if (isNaN(Number(process.env.CONNECT_ON))) {
-      console.error(new Error('CONNECT_ON must be a number'))
+    // debugger
+    let date
+    debugger
+    if (!isNaN(Number(process.env.CONNECT_ON))) {
+      date = new Date(process.env.CONNECT_ON)
+    } else {
+      date = toDate(process.env.CONNECT_ON)
+    }
+    if (!date) {
+      console.error(new Error('CONNECT_ON must be a number or a date'))
       process.exit(1)
     }
-    const date = new Date(Number(process.env.CONNECT_ON))  
     console.info('Should connect at', date.toLocaleString())
     // Check if the date is in the past
     if (date.getTime() < Date.now()) {
