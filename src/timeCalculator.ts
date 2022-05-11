@@ -54,7 +54,7 @@ export function toDate(string: string) {
       }
     }
     if (month) targetDate.setMonth(month - 1)
-    targetDate.setDate(day - 1)
+    targetDate.setDate(day)
     targetDate.setHours(hour)
     if (minute) targetDate.setMinutes(minute)
     if (targetDate < new Date()) {
