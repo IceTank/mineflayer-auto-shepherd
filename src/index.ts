@@ -67,13 +67,6 @@ async function init() {
   }, {
     motd: 'loading...',
   })
-  
-  // const proxy = new InspectorProxy({
-  //   host: 'localhost',
-  //   username: 'TestBot',
-  //   version: '1.12.2',
-  //   checkTimeoutInterval: 90_000
-  // })
 
   let afkIntervalHandle: NodeJS.Timer | undefined = undefined;
   let actionTimeout: NodeJS.Timer | undefined;
@@ -91,6 +84,7 @@ async function init() {
     lastAction = Date.now()
     actionTimeout = setInterval(() => {
       const now = new Date()
+      if (bot.autoShepherd.currentMode === 'stopped') return
       if (now.getTime() - lastAction > watchdogTimeout) {
         console.info('Disconnect due to stuck', now.toLocaleTimeString())
         console.info('Last actions', bot.autoShepherd.lastActions)
@@ -214,6 +208,9 @@ async function init() {
     updateMotd()
     sendWelcomeMessage(client)
   })
+  proxy.on('clientChat', (client, message) => {
+
+  })
 
   bot.loadPlugins([pathfinder, autoeat, autoShepherdPlugin])
   
@@ -247,8 +244,10 @@ async function init() {
   if (process.env.VIEWER === 'true') mineflayerViewer(bot, { port: 3000 })
   if (process.env.INV === 'true') inventoryViewer(bot, { port: 3001 })
   if (process.env.START_IDLE === 'true') {
+    console.info('Starting in mode idle')
     bot.autoShepherd.switchMode('idle')
   } else {
+    console.info('Starting in mode running')
     bot.autoShepherd.switchMode('running')
   }
   // @ts-ignore
@@ -257,11 +256,6 @@ async function init() {
   bot.autoEat.options.bannedFood = []
   // @ts-ignore
   bot.autoEat.options.eatingTimeout = 3
-
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  })
 
   afkIntervalHandle = setInterval(() => {
     bot.swingArm(undefined)
@@ -303,6 +297,19 @@ async function init() {
   bot.autoShepherd.emitter.on('alive', () => {
     resetActionTimeout()
   })
+  
+  function exitBot() {
+    console.info('Exiting')
+    bot.autoShepherd.stopSheering()
+      .then(() => bot.autoShepherd.logResults())
+      .then(() => process.exit(0))
+      .catch(console.error)
+  }
+  
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  })
 
   rl.on('line', (line) => {
     line = line.trim()
@@ -325,20 +332,10 @@ async function init() {
     }
   })
 
-  function exitBot() {
-    console.info('Exiting')
-    bot.autoShepherd.stopSheering()
-      .then(() => bot.autoShepherd.logResults())
-      .then(() => process.exit(0))
-      .catch(console.error)
-  }
-
   rl.on('SIGINT', () => {
     bot.removeListener('end', handleReconnect)
     exitBot()
   })
-
-  bot.autoShepherd.start()
 }
 
 // Catch MaxListenersExceededWarning

@@ -5,6 +5,7 @@ import { EventEmitter } from "stream";
 import { once } from "events";
 const wait = promisify(setTimeout)
 import { Movements, goals } from "mineflayer-pathfinder";
+import { v1 as uuid } from "uuid"
 
 declare module 'mineflayer' {
   interface Bot {
@@ -13,10 +14,12 @@ declare module 'mineflayer' {
 }
 
 type BotModes = 'idle' | 'running' | 'stopped' | 'paused'
+const modeRequireCycling = ['idle', 'running', 'paused']
 
 interface AutoShepherd {
   autoCraftShears: boolean
   lastActions: string[]
+  currentMode: BotModes
   start: () => void
   addLastAction: (action: string) => void
   getItems: () => Promise<void>
@@ -52,20 +55,22 @@ export function inject(bot: Bot, options: BotOptions): void {
   const mcData = Data(bot.version)
   const IronIngot = mcData.itemsByName.iron_ingot
   const maxTimeInAction = 30_000
+  const maxCycleTime = maxTimeInAction * 5
 
   let startTime: Date = new Date()
   let itemsDepositedTotal: number = 0
-  let currentMode: BotModes = 'idle'
   let lastMode: BotModes = 'idle'
 
   bot.autoShepherd = {
     autoCraftShears: true,
     lastActions: [],
+    currentMode: 'idle',
     start: () => {
       if (isRunning || isAwaitingCycleStart) {
         console.info('Already running')
         return
       }
+      console.info('Starting autoShepherd')
       isAwaitingCycleStart = true
       startTime = new Date()
       const defaultMovement = new Movements(bot, mcData)
@@ -74,7 +79,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       defaultMovement.allowSprinting = false
       bot.pathfinder.setMovements(defaultMovement)
       startCycling()
-        .catch(console.error)
+        .catch(err => console.error('Cycle start returned error', err))
     },
     addLastAction: (action: string) => {
       const now = new Date()
@@ -269,7 +274,6 @@ export function inject(bot: Bot, options: BotOptions): void {
       return isRunning || isAwaitingCycleStart
     },
     startSheering: () => {
-      bot.autoShepherd.start()
       itemsDepositedTotal = 0
       console.info('Starting')
       bot.autoShepherd.addLastAction('startSheering')
@@ -278,7 +282,6 @@ export function inject(bot: Bot, options: BotOptions): void {
     stopSheering: async () => {
       bot.autoShepherd.switchMode('stopped')
       bot.autoShepherd.addLastAction('stopSheering')
-      await once(bot.autoShepherd.emitter, 'cycle')
       isRunning = false
     },
     craftShears: async () => {
@@ -343,17 +346,22 @@ export function inject(bot: Bot, options: BotOptions): void {
       console.info(`Farmed ${itemsPerHour} items per hour for a total off ${itemsTotal} items`)
     },
     switchMode: (mode: BotModes) => {
-      if (mode === currentMode) return
-      lastMode = currentMode
-      currentMode = mode
-      if (!bot.autoShepherd.isRunning()) bot.autoShepherd.start()
+      if (mode === bot.autoShepherd.currentMode) {
+        console.info('Not switching: Already in mode ' + mode)
+        if (modeRequireCycling.includes(mode) && !bot.autoShepherd.isRunning()) bot.autoShepherd.start()
+        return
+      }
+      console.info(`Switching from ${bot.autoShepherd.currentMode} to ${mode}`)
+      lastMode = bot.autoShepherd.currentMode
+      bot.autoShepherd.currentMode = mode
+      if (modeRequireCycling.includes(mode)) bot.autoShepherd.start()
     },
     pause: () => {
       bot.autoShepherd.switchMode('paused')
       bot.autoShepherd.addLastAction('pause')
     },
     unpause: () => {
-      if (currentMode !== 'paused') return
+      if (bot.autoShepherd.currentMode !== 'paused') return
       bot.autoShepherd.switchMode(lastMode)
     },
     emitter: new EventEmitter()
@@ -423,55 +431,112 @@ export function inject(bot: Bot, options: BotOptions): void {
 
   const startCycling = async () => {
     while (true) {
-      isAwaitingCycleStart = false
-      bot.autoShepherd.addLastAction('cycle start')
       bot.autoShepherd.emitter.emit('alive')
-      if (!bot.proxy.botIsControlling) {
-        await wait(5000)
-        continue
-      }
-      // Wait for the last cycle to finish then switch isRunning to false
-      if (currentMode === 'stopped') {
-        isRunning = false
-        return
-      }
-      if (currentMode === 'paused') {
-        await wait(1000)
-        continue
-      }
-      if (currentMode === 'idle') {
-        await wait(1000)
-        // Don't move all the time
-        if (Math.random() < 0.1) {
-          await randomIdleAction()
+      const lock = new LockToken()
+      try {
+        await Promise.race([cycle(lock), lock.waitAndTrebuchetThis(maxCycleTime)])
+        bot.autoShepherd.emitter.emit('alive')
+      } catch (err: Error | any) {
+        if (err instanceof Error && err.message === LockToken.ErrorMsgTokenInUse) {
+          console.info('Watchdog killed cycle for token', lock.token)
+          return
         }
-        continue
+        console.error('Caught cycle error', err)
+        await wait(2000)
       }
-      isRunning = true
-      if (bot.inventory.emptySlotCount() < 2) await bot.autoShepherd.depositItems()
-      const shears = bot.inventory.items().find(i => i.name.includes('shears'))
-      if (!shears) {
-        if (!bot.autoShepherd.autoCraftShears) {
-          if (!bot.proxy.botIsControlling) continue
-          console.info('No more shears left')
-          botExit(0)
-        }
-        console.info('Crafting new shears')
-        const success = await bot.autoShepherd.craftShears()
-        if (!success) {
-          if (!bot.proxy.botIsControlling) continue
-          console.info('No more shears left. Crafting shears failed')
-          botExit(1)
-        }
-      }
-      // console.info('Getting wool')
-      await bot.autoShepherd.getWool()
-      await wait(1000)
-      // console.info('Getting dropped items')
-      await bot.autoShepherd.getItems()
-      await wait(1000)
-      bot.autoShepherd.emitter.emit('cycle')
-      await wait(1000)
     }
   }
+
+  const cycle = async (token: LockToken) => {
+    isAwaitingCycleStart = false
+    bot.autoShepherd.addLastAction('cycle start')
+    if (!bot.proxy.botIsControlling) {
+      await token.waitAndTrebuchetThis(5000)
+      return
+    }
+    // Wait for the last cycle to finish then switch isRunning to false
+    if (bot.autoShepherd.currentMode === 'stopped') {
+      isRunning = false
+      return
+    }
+    if (bot.autoShepherd.currentMode === 'paused') {
+      await token.waitAndTrebuchetThis(1000)
+      return
+    }
+    if (bot.autoShepherd.currentMode === 'idle') {
+      await token.waitAndTrebuchetThis(1000)
+      // Don't move all the time
+      if (Math.random() < 0.1) {
+        await randomIdleAction()
+      }
+      return
+    }
+    isRunning = true
+    token.trebuchetThis()
+    if (bot.inventory.emptySlotCount() < 2) await bot.autoShepherd.depositItems()
+    token.trebuchetThis()
+    const shears = bot.inventory.items().find(i => i.name.includes('shears'))
+    if (!shears) {
+      if (!bot.autoShepherd.autoCraftShears) {
+        if (!bot.proxy.botIsControlling) return
+        console.info('No more shears left')
+        botExit(0)
+      }
+      console.info('Crafting new shears')
+      const success = await bot.autoShepherd.craftShears()
+      token.trebuchetThis()
+      if (!success) {
+        if (!bot.proxy.botIsControlling) return
+        console.info('No more shears left. Crafting shears failed')
+        botExit(1)
+      }
+    }
+    // console.info('Getting wool')
+    await bot.autoShepherd.getWool()
+    await token.waitAndTrebuchetThis(1000)
+    // console.info('Getting dropped items')
+    await bot.autoShepherd.getItems()
+    await token.waitAndTrebuchetThis(1000)
+    bot.autoShepherd.emitter.emit('cycle')
+    await token.waitAndTrebuchetThis(1000)
+  }
+}
+
+class LockToken {
+  private static currentToken?: string = undefined
+  private static emitter = new EventEmitter()
+  static ErrorMsgTokenInUse = 'Token outdated'
+  token: string
+  constructor() {
+    this.token = uuid();
+    LockToken.currentToken = this.token
+    LockToken.emitter.emit('new_token', this.token)
+  }
+
+  /**
+   * @returns true if the token is the current token
+   */
+  isCurrent(): boolean {
+    if (!LockToken.currentToken) return true
+    return this.token === LockToken.currentToken
+  }
+
+  /**
+   * Did you know a Trebuchet can launch a 90kg projectile 300m?
+   * @throws {Error} If the token is not the current one
+   */
+  trebuchetThis(): void | never {
+    if (!this.isCurrent()) throw new Error(LockToken.ErrorMsgTokenInUse)
+  }
+
+  async waitAndTrebuchetThis(ms: number) {
+    await Promise.race([wait(ms), invertPromise(once(LockToken.emitter, 'new_token'), new Error(LockToken.ErrorMsgTokenInUse))])
+  }
+}
+
+async function invertPromise(arg: Promise<any>, throwError?: any): Promise<never> {
+  const val = await arg
+  if (throwError) throw throwError
+  if (!val) throw 'timeout'
+  throw val
 }

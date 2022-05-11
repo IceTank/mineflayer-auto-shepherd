@@ -27,5 +27,8 @@
     "prismarine-entity": "^2.1.0",
     "prismarine-viewer": "^1.21.0",
     "prismarine-windows": "github:IceTank/prismarine-windows#wrong-assertion-workaround"
+  },
+  "devDependencies": {
+    "@types/uuid": "^8.3.4"
   }
 }
