@@ -1,5 +1,5 @@
 ## Automatic sheep farm bot for 2b2t
-Automatically shears sheep and put the wool into nearby chests that have a wool block below them. Crafts shears from iron in the bots inventory. 
+Automatically shears sheep and put's the wool into nearby chests that have a wool block below them. Crafts shears from iron in the bots inventory. 
 Ideal setup is a closed space with grass for the sheep to regrow there wool on there own. The bot cannot defend itself and will log off when it takes damage.
 
 ## Features
