@@ -7,6 +7,7 @@ Ideal setup is a closed space with grass for the sheep to regrow there wool on t
 - Auto eat
 - Automatic shear crafting and wool depositing
 - Auto queueing and auto reconnect
+- Integrated proxy to connect into the game as the bot account
 - Web viewer off the bots inventory
 - Web viewer off the bots surrounding world
 
@@ -26,6 +27,13 @@ Ideal setup is a closed space with grass for the sheep to regrow there wool on t
 - `INV=` `true`|`false`. Set if the browser inventory viewer should be used
 - `START_IDLE=` `true`|`false`. Start in mode idle or start in mode running
 - `CONNECT_ON=` `number`. Unix timestamp in milliseconds. When the bot should connect to the server
+
+## Usage 
+After starting the bot with `npm run start` it will create it's own proxy server running on port 25566. You can join the proxy server with `localhost:25566` and see the bot working.
+
+To take control off the proxy bot type `$link` in chat. To unlink type `$unlink` in chat. 
+The proxy implementation is not perfect. Entity states are not transfered correctly so map's and entities within render distence when joining the proxy will look wrong until you reload them.
+If the START_IDLE variable is set the bot will try to not get kicked when joining the server. Altho this does not seam to be too effective at the moment. While running in sheering mode the bot can stay connect for up to 9 hours before getting kicked by the server.
 
 ## pm2 start
 `pm2 start npm --no-autorestart -- run run`
