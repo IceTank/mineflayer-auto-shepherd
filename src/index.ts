@@ -86,7 +86,8 @@ async function init() {
     lastAction = Date.now()
     actionTimeout = setInterval(() => {
       const now = new Date()
-      if (bot.autoShepherd.currentMode === 'stopped') return
+      if (!bot.proxy.botIsControlling) return
+      if (bot.autoShepherd.currentMode === 'stopped' || bot.autoShepherd.currentMode === 'idle') return
       if (now.getTime() - lastAction > watchdogTimeout) {
         console.info('Disconnect due to stuck', now.toLocaleTimeString())
         console.info('Last actions', bot.autoShepherd.lastActions)
