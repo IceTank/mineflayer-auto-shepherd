@@ -9,20 +9,16 @@ import inventoryViewer = require('mineflayer-web-inventory')
 const wait = require('util').promisify(setTimeout)
 dotenv.config()
 import { InspectorProxy } from "mineflayer-proxy-inspector";
-import { inject as autoShepherdPlugin } from "./plugins/autoShepherd";
+import { inject as autoShepherdPlugin, Modes } from "./plugins/autoShepherd";
 import path from "path";
 import { promises as fs } from "fs";
-import readline from "readline";
 import { toDate } from "./timeCalculator";
-const { default: fetch } = require('node-fetch');
-// const { MessageBuilder } = require('prismarine-chat')
 import PChat from 'prismarine-chat'
 import type { ChatMessage } from 'prismarine-chat'
 import type { MessageBuilder as TypeMessageBuilder } from 'prismarine-chat'
-import type { Client } from 'minecraft-protocol'
 import { getQueueLengths } from "./queueLengthAPI";
-
-const queueLengthAPI = 'https://2b2t.space/queue'
+import { Commands } from "./plugins/commands";
+import { ChatTools as ChatToolsClass } from "./plugins/chatTools";
 
 const chatLog = path.join(__dirname, '../chat.txt')
 const nmpCache = path.join(__dirname, '../nmp-cache')
@@ -66,6 +62,8 @@ async function init() {
   let host = process.env.MCHOST
   let logoffOnDamage = process.env.LOGOFFONDAMAGE ? process.env.LOGOFFONDAMAGE === 'true' : true
   let eatOnHunger = process.env.EATONHUNGER ? process.env.EATONHUNGER === 'true' : true
+  let ChatTools: ChatToolsClass | undefined
+  const commandManager = Commands.getInstance()
 
   const initWatchdog = () => {
     lastAction = Date.now()
@@ -110,27 +108,6 @@ async function init() {
     }, 30000 + disconnectCooldown)
   }
 
-  /**
-   * Send how long the proxy has been connected to the server
-   * @param client The connecting client
-   */
-  const sendWelcomeMessage = (client: Client) => {
-    if (!MessageBuilder) return
-    const connectedAt = loginDate ? loginDate.getTime() : 0
-    const secondsConnected = Math.floor((Date.now() - connectedAt) / 1000)
-    const hoursConnected = Math.floor(secondsConnected / (60 * 60))
-    const minutesConnected = Math.floor((secondsConnected - hoursConnected * 60 * 60) / 60)
-    const message = new MessageBuilder()
-    message.setColor('gold').setBold(true).setText('Proxy >> ').setBold(false)
-    message.setColor('green').setText(`Connected since ${hoursConnected}h ${minutesConnected % 60}m ${secondsConnected % 60}s`)
-    const mojangMessage = {
-      message: JSON.stringify(message.toJSON()),
-      position: 1
-    }
-    console.info('Welcome message', mojangMessage)
-    client.write('chat', mojangMessage)
-  }
-
   const updateMotd = () => {
     let line1 = ''
     let line2 = ''
@@ -158,8 +135,9 @@ async function init() {
     loginDate = new Date()
     proxyStatus = 'queue'
     console.info('Login with username', bot.username)
-    Chat = PChat(bot.version)
-    MessageBuilder = Chat.MessageBuilder
+    const { MessageBuilder: tmp } = PChat(bot.version)
+    MessageBuilder = tmp
+    ChatTools = new ChatToolsClass(MessageBuilder)
   })
 
   function parseMessageToPosition(message: string): { pos: number, didChange: boolean, firstTime?: boolean } {
@@ -245,16 +223,87 @@ async function init() {
   // })
   proxy.on('clientConnect', (client) => {
     updateMotd()
-    sendWelcomeMessage(client)
+    if (!ChatTools || !loginDate) return
+    ChatTools.sendStatusMessage(client, loginDate, bot.autoShepherd.currentMode)
   })
-  proxy.on('clientChat', (client, message) => {
-
+  proxy.on('clientChatRaw', (client, message) => {
+    commandManager.onLine(message, client)
   })
 
   bot.loadPlugins([pathfinder, autoeat, autoShepherdPlugin])
   
   // @ts-ignore
   bot.autoEat.disable()
+
+  function exitBot() {
+    console.info('Exiting')
+    commandManager.flushListeners()
+    bot.autoShepherd.stopSheering()
+      .then(() => bot.autoShepherd.logResults())
+      .then(() => process.exit(0))
+      .catch(console.error)
+  }
+
+  commandManager.on('exitBot', () => { exitBot() })
+  commandManager.on('startCycle', () => {
+    bot.autoShepherd.startSheering()
+  })
+  commandManager.on('stopSheering', () => {
+    bot.autoShepherd.switchMode('stopped')
+  })
+  commandManager.on('currentMode', (client) => {
+    if (!client) return console.info('Current mode:', bot.autoShepherd.currentMode)
+    if (!MessageBuilder) return console.info('No MessageBuilder')
+    const message = new MessageBuilder()
+    message.setColor('green').setText(`Current mode: ${bot.autoShepherd.currentMode}`)
+    client.write('chat', {
+      position: 1,
+      message: JSON.stringify(message.toJSON())
+    })
+  })
+  commandManager.on('status', (client) => {
+    if (!client || !ChatTools || !loginDate) return console.info('Current mode:', bot.autoShepherd.currentMode)
+    if (!MessageBuilder) return console.info('No MessageBuilder')
+    ChatTools.sendStatusMessage(client, loginDate, bot.autoShepherd.currentMode)
+  })
+  commandManager.on('startSheering', () => {
+    bot.autoShepherd.startSheering()
+  })
+  commandManager.on('stopSheering', () => {
+    bot.autoShepherd.stopSheering()
+  })
+  commandManager.on('help', (client, arg) => {
+    if (!MessageBuilder || !ChatTools) return console.info('No MessageBuilder')
+    if (!client) return console.info('No client')
+    const message = new MessageBuilder()
+    if (Array.isArray(arg)) {
+      const messageString = arg.map(command => command.command).join(', ')
+      message.setColor('green').setText(messageString)
+      ChatTools.sendMessage(client, message)
+    } else {
+      if (arg.notFound) {
+        message.setColor('yellow')
+      } else {
+        message.setColor('green')
+      }  
+      const messageString = `${arg.command} - ${arg.description}`
+      message.setText(messageString)
+      ChatTools.sendMessage(client, message)
+    }
+  })
+  commandManager.on('switchMode', (client, mode) => {
+    if (!client || !ChatTools) return console.info('No client')
+    if (!MessageBuilder) return console.info('No MessageBuilder')
+    if (!Modes.includes(mode)) {
+      const root = new MessageBuilder()
+      
+      ChatTools.sendMessage(client, new MessageBuilder().setColor('red').setText('Invalid mode'))
+    } else {
+      // @ts-expect-error
+      bot.autoShepherd.switchMode(mode)
+      ChatTools.sendMessage(client, new MessageBuilder().setColor('green').setText(`Switched to mode ${mode}`))
+    }
+  })
 
   // Wait for the bot to spawn. Also works for the 2b2t queue.
   // Abort when the bot disconnects while in queue.
@@ -307,9 +356,9 @@ async function init() {
     clearInterval(motdUpdateInterval)
     // @ts-ignore
     if (bot.viewer?.close) bot.viewer.close()
-    rl.close()
     bot.autoShepherd.stopSheering()
     bot.removeAllListeners()
+    commandManager.flushListeners()
   })
   
   bot.on('health', async () => {
@@ -335,45 +384,6 @@ async function init() {
 
   bot.autoShepherd.emitter.on('alive', () => {
     resetActionTimeout()
-  })
-  
-  function exitBot() {
-    console.info('Exiting')
-    bot.autoShepherd.stopSheering()
-      .then(() => bot.autoShepherd.logResults())
-      .then(() => process.exit(0))
-      .catch(console.error)
-  }
-  
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  })
-
-  rl.on('line', (line) => {
-    line = line.trim()
-    if (line === 'start') {
-      bot.autoShepherd.startSheering()
-      return
-    } else if (line === 'stop') {
-      bot.autoShepherd.stopSheering()
-    } else if (line === 'craft') {
-      console.info('Crafting shears')
-      bot.autoShepherd.craftShears()
-        .then(result => console.info('Result', result))
-        .catch(console.error)
-    } else if (line === 'deposit') {
-      bot.autoShepherd.stopSheering()
-        .then(() => bot.autoShepherd.depositItems())
-        .catch(console.error)
-    } else if (line === 'quit' || line === 'exit') {
-      exitBot()
-    }
-  })
-
-  rl.on('SIGINT', () => {
-    bot.removeListener('end', handleReconnect)
-    exitBot()
   })
 }
 

@@ -14,6 +14,7 @@ declare module 'mineflayer' {
 }
 
 type BotModes = 'idle' | 'running' | 'stopped' | 'paused'
+const Modes = ['idle', 'running', 'stopped', 'paused']
 const modeRequireCycling = ['idle', 'running', 'paused']
 
 interface AutoShepherd {
@@ -346,6 +347,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       console.info(`Farmed ${itemsPerHour} items per hour for a total off ${itemsTotal} items`)
     },
     switchMode: (mode: BotModes) => {
+      if (!Modes.includes(mode)) return
       if (mode === bot.autoShepherd.currentMode) {
         console.info('Not switching: Already in mode ' + mode)
         if (modeRequireCycling.includes(mode) && !bot.autoShepherd.isRunning()) bot.autoShepherd.start()
@@ -539,4 +541,8 @@ async function invertPromise(arg: Promise<any>, throwError?: any): Promise<never
   if (throwError) throw throwError
   if (!val) throw 'timeout'
   throw val
+}
+
+export {
+  Modes
 }
