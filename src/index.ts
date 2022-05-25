@@ -17,6 +17,7 @@ import { toDate } from "./timeCalculator";
 const { default: fetch } = require('node-fetch');
 // const { MessageBuilder } = require('prismarine-chat')
 import PChat from 'prismarine-chat'
+import type { ChatMessage } from 'prismarine-chat'
 import type { MessageBuilder as TypeMessageBuilder } from 'prismarine-chat'
 import type { Client } from 'minecraft-protocol'
 
@@ -77,6 +78,8 @@ async function init() {
   let spawnAbortController = new AbortController()
   let lastQueuePosition = 0
   let MessageBuilder: typeof TypeMessageBuilder | undefined
+  let Chat: typeof ChatMessage | undefined
+  let ChatTools: ChatToolsClass | undefined
   let proxyStatus: 'queue' | 'online' | 'offline' = 'offline'
   let host = process.env.MCHOST
 
@@ -170,8 +173,9 @@ async function init() {
     loginDate = new Date()
     proxyStatus = 'queue'
     console.info('Login with username', bot.username)
-    const { MessageBuilder: tmp } = PChat(bot.version)
-    MessageBuilder = tmp
+    Chat = PChat(bot.version)
+    MessageBuilder = Chat.MessageBuilder
+    ChatTools = new ChatToolsClass(MessageBuilder)
   })
 
   bot.on('error', console.error)
@@ -180,19 +184,7 @@ async function init() {
   bot.on('message', (chatMessage) => {
     const chatString = chatMessage.toString()
     try {
-      if (chatString.startsWith('Position in queue:')) {
-        const match = chatString.match(/(\d+)/)
-        if (!match) return
-        const num = Number(match[0])
-        if (isNaN(num)) return
-        if (lastQueuePosition !== num) {
-          updateMotd()
-          if ((num < 10 && num < lastQueuePosition) || (num < Math.floor(lastQueuePosition / 10) * 10) || lastQueuePosition === 0) {
-            console.info('Queue position', num)
-          }
-          lastQueuePosition = num
-        }
-      } else if (chatString.startsWith('Connecting to the server...')) {
+      if (chatString.startsWith('Connecting to the server...')) {
         console.info(chatString)
         ringConsoleBell()
       } else if (logNoneQueueChat) {
@@ -203,6 +195,28 @@ async function init() {
     }
     fs.appendFile(chatLog, chatString + '\n')
       .catch(console.error)
+  })
+  bot._client.on('title', (packet) => {
+    if (packet.action !== 0) return
+    if (!Chat) return
+    try {
+      const text = new Chat(packet.text)
+      const string = text.toString()
+      if (!string.includes('Position in queue:')) return
+      const match = string.match(/(\d+)/)
+      if (!match) return
+      const num = Number(match[0])
+      if (isNaN(num)) return
+      if (lastQueuePosition !== num) {
+        updateMotd()
+        if ((num < 10 && num < lastQueuePosition) || (num < Math.floor(lastQueuePosition / 10) * 10) || lastQueuePosition === 0) {
+          console.info('Queue position', num)
+        }
+        lastQueuePosition = num
+      }
+    } catch (err) {
+      
+    }
   })
   proxy.on('clientConnect', (client) => {
     updateMotd()
