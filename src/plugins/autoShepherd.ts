@@ -507,8 +507,11 @@ class LockToken {
   private static emitter = new EventEmitter()
   static ErrorMsgTokenInUse = 'Token outdated'
   token: string
+  private static waitController: AbortController = new AbortController()
   constructor() {
     this.token = uuid();
+    this.abort()
+    LockToken.waitController = new AbortController()
     LockToken.currentToken = this.token
     LockToken.emitter.emit('new_token', this.token)
   }
@@ -521,6 +524,11 @@ class LockToken {
     return this.token === LockToken.currentToken
   }
 
+  abort() {
+    LockToken.waitController.abort()
+    LockToken.waitController = new AbortController()
+  }
+
   /**
    * Did you know a Trebuchet can launch a 90kg projectile 300m?
    * @throws {Error} If the token is not the current one
@@ -529,8 +537,15 @@ class LockToken {
     if (!this.isCurrent()) throw new Error(LockToken.ErrorMsgTokenInUse)
   }
 
+  private async _wait(ms: number): Promise<void> {
+    if (LockToken.waitController.signal.aborted) this.abort()
+    await wait(ms, undefined, {
+      signal: LockToken.waitController.signal
+    })
+  }
+
   async waitAndTrebuchetThis(ms: number) {
-    await Promise.race([wait(ms), invertPromise(once(LockToken.emitter, 'new_token'), new Error(LockToken.ErrorMsgTokenInUse))])
+    await Promise.race([this._wait(ms), invertPromise(once(LockToken.emitter, 'new_token'), new Error(LockToken.ErrorMsgTokenInUse))])
   }
 }
 
