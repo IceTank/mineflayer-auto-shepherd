@@ -79,7 +79,6 @@ async function init() {
   let lastQueuePosition = 0
   let MessageBuilder: typeof TypeMessageBuilder | undefined
   let Chat: typeof ChatMessage | undefined
-  let ChatTools: ChatToolsClass | undefined
   let proxyStatus: 'queue' | 'online' | 'offline' = 'offline'
   let host = process.env.MCHOST
 
@@ -175,7 +174,6 @@ async function init() {
     console.info('Login with username', bot.username)
     Chat = PChat(bot.version)
     MessageBuilder = Chat.MessageBuilder
-    ChatTools = new ChatToolsClass(MessageBuilder)
   })
 
   bot.on('error', console.error)
