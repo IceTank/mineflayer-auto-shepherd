@@ -3,13 +3,13 @@ Automatically shears sheep and put's the wool into nearby chests that have a woo
 Ideal setup is a closed space with grass for the sheep to regrow there wool on there own. The bot cannot defend itself and will log off when it takes damage.
 
 ## Features
-- Automatic shearing off nearby sheep
+- Automatic shearing of nearby sheep
 - Auto eat
 - Automatic shear crafting and wool depositing
 - Auto queueing and auto reconnect
 - Integrated proxy to connect into the game as the bot account
-- Web viewer off the bots inventory
-- Web viewer off the bots surrounding world
+- Web inventory viewer
+- Web world viewer
 
 ## Installation
 1. Install [Node.js](https://nodejs.org)
@@ -21,7 +21,7 @@ Ideal setup is a closed space with grass for the sheep to regrow there wool on t
 
 ## Environment variables (in .env)
 - `MCUSERNAME=` Microsoft Email
-- `MCPASSWORD=` Password
+- `MCPASSWORD=` Password optional. You can authenticate via microsoft auth when not providing a password by following the steps in the terminal output
 - `MCHOST=` Host (Should be `connect.2b2t.org` for 2b)
 - `VIEWER=` `true`|`false`. Set if the browser world viewer should be used
 - `INV=` `true`|`false`. Set if the browser inventory viewer should be used
