@@ -177,46 +177,87 @@ async function init() {
     MessageBuilder = Chat.MessageBuilder
   })
 
+  function parseMessageToPosition(message: string): { pos: number, didChange: boolean, firstTime?: boolean } {
+    if (!message.includes('Position in queue:')) {
+      // console.info('No position in message', message)
+      return {
+        pos: lastQueuePosition,
+        didChange: false
+      }
+    }
+    const match = message.match(/(\d+)/)
+    if (!match) {
+      // console.info('Could not find position in message', message)
+      return { pos: lastQueuePosition, didChange: false }
+    }
+    const num = Number(match[0])
+    if (isNaN(num)) {
+      // console.info('Parsing match failed', match[0])
+      return {
+        pos: lastQueuePosition,
+        didChange: false
+      }
+    }
+    if (lastQueuePosition !== num) {
+      const oldPos = lastQueuePosition
+      lastQueuePosition = num
+      return {
+        pos: num,
+        didChange: true,
+        firstTime: oldPos === 0
+      }
+    }
+    return { pos: lastQueuePosition, didChange: false }
+  }
+
   bot.on('error', console.error)
   bot.on('kicked', (reason) => console.info('Kicked for reason', reason))
   bot.on('end', handleReconnect)
   bot.on('message', (chatMessage) => {
     const chatString = chatMessage.toString()
-    try {
-      if (chatString.startsWith('Connecting to the server...')) {
-        console.info(chatString)
-        ringConsoleBell()
-      } else if (logNoneQueueChat) {
-        console.info(`> ${chatMessage.toString()}`)
-      }
-    } catch (err) {
-      
-    }
-    fs.appendFile(chatLog, chatString + '\n')
-      .catch(console.error)
-  })
-  bot._client.on('title', (packet) => {
-    if (packet.action !== 0) return
-    if (!Chat) return
-    try {
-      const text = new Chat(packet.text)
-      const string = text.toString()
-      if (!string.includes('Position in queue:')) return
-      const match = string.match(/(\d+)/)
-      if (!match) return
-      const num = Number(match[0])
-      if (isNaN(num)) return
-      if (lastQueuePosition !== num) {
-        updateMotd()
-        if ((num < 10 && num < lastQueuePosition) || (num < Math.floor(lastQueuePosition / 10) * 10) || lastQueuePosition === 0) {
-          console.info('Queue position', num)
+    const strings = chatString.split('\n')
+    for (const string of strings) {
+      if (string.replace(/\n/g, '').trim() === '') continue
+      try {
+        if (string.startsWith('Connecting to the server...')) {
+          console.info(string)
+          ringConsoleBell()
+        } else if (string.startsWith('You can purchase priority queue')) {
+          return
+        } else if (string.startsWith('Position in queue')) {
+          const { pos, didChange, firstTime } = parseMessageToPosition(string)
+          updateMotd()
+          if (pos < 10 || (pos % 10 === 0 && didChange) || firstTime) {
+            console.info('Position in queue', pos)
+          }
+        } else if (logNoneQueueChat) {
+          console.info(`> ${string}`)
         }
-        lastQueuePosition = num
+      } catch (err) {
+        
       }
-    } catch (err) {
-      
+      fs.appendFile(chatLog, string + '\n')
+        .catch(console.error)
     }
   })
+  // bot._client.on('title', (packet) => {
+  //   if (packet.action !== 0) return
+  //   if (!Chat) return
+  //   try {
+  //     // console.info('Packets', packet)
+  //     const text = new Chat(JSON.parse(packet.text))
+  //     const string = text.toString()
+  //     if (string.trim() === '') return
+  //     const { pos, didChange } = parseMessageToPosition(string)
+  //     // console.info('Position from title', pos)
+  //     // if (!didChange) return
+  //     // updateMotd()
+  //     // if (pos < 10 || (pos % 10 === 0 && didChange)) {
+  //     // }
+  //   } catch (err) {
+      
+  //   }
+  // })
   proxy.on('clientConnect', (client) => {
     updateMotd()
     sendWelcomeMessage(client)
