@@ -81,6 +81,8 @@ async function init() {
   let Chat: typeof ChatMessage | undefined
   let proxyStatus: 'queue' | 'online' | 'offline' = 'offline'
   let host = process.env.MCHOST
+  let logoffOnDamage = process.env.LOGOFFONDAMAGE ? process.env.LOGOFFONDAMAGE === 'true' : true
+  let eatOnHunger = process.env.EATONHUNGER ? process.env.EATONHUNGER === 'true' : true
 
   const initWatchdog = () => {
     lastAction = Date.now()
@@ -328,13 +330,13 @@ async function init() {
   })
   
   bot.on('health', async () => {
-    if (bot.health < 18) {
+    if (bot.health < 18 && logoffOnDamage) {
       console.warn('Took to much damage logging off')
       bot.autoShepherd.logResults()
       process.exit(1)
     }
     // @ts-ignore
-    if (bot.food < 16 && ! bot.autoEat.isEating) {
+    if (bot.food < 16 && eatOnHunger && !bot.autoEat.isEating) {
       await bot.autoShepherd.stopSheering()
       console.info('Starting to eat')
       await new Promise<void>((resolve) => {

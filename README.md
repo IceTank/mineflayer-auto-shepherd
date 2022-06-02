@@ -19,20 +19,25 @@ Ideal setup is a closed space with grass for the sheep to regrow there wool on t
 5. Create a file `.env` and fill it out with your account information according to the Environment variables listed below
 6. Run it with `npm start`
 
-## Environment variables (in .env)
-- `MCUSERNAME=` Microsoft Email
-- `MCPASSWORD=` Password optional. You can authenticate via microsoft auth when not providing a password by following the steps in the terminal output
-- `MCHOST=` Host (Should be `connect.2b2t.org` for 2b)
-- `VIEWER=` `true`|`false`. Set if the browser world viewer should be used
-- `INV=` `true`|`false`. Set if the browser inventory viewer should be used
-- `START_IDLE=` `true`|`false`. Start in mode idle or start in mode running
-- `CONNECT_ON=` `number`. Unix timestamp in milliseconds. When the bot should connect to the server
+### Environment variables (in .env)
+- `MCUSERNAME=` Microsoft Email for the account to be used.
+- `MCHOST=` Host (Should be `connect.2b2t.org` for 2b).
+- `MCPASSWORD=` Optional. You can authenticate via microsoft auth when not providing a password by following the steps in the terminal output.
+- `VIEWER=` `true`|`false`. Optional. Set if the browser world viewer should be used. Default to `true`.
+- `INV=` `true`|`false`. Optional. Set if the browser inventory viewer should be used. Default to `true`.
+- `START_IDLE=` `true`|`false`. Optional. Start in mode idle or start in mode running. Default to `false`.
+- `CONNECT_ON=` `number`. Optional. Unix timestamp in milliseconds. When the bot should connect to the server. When not provided starts immediately.
+- `LOGOFFONDAMAGE=` `true`|`false`. Optional. Loges off when the bot takes damage. Defaults to `true`.
+- `EATONHUNGER=` `true`|`false`. Optional. Tries to eat when low on food. Defaults to `true`.
 
 ## Usage 
+### Starting
 After starting the bot with `npm run start` it will create it's own proxy server running on port 25566. You can join the proxy server with `localhost:25566` and see the bot working.
+When you run this script on a server you can also connect to the proxy by using the server ip and port 25566. When running a docker container make sure to expose port 0.0.0.0:25566 on the host machine to be able to connect from outside off the network. Example: `-p 0.0.0.0:25566:25566` exposes port 25566 on all addresses when launching a container. Without this the docker container will only expose the port on the address range off 127.0.0.0 making it inaccessible from outside off the machine.
 
+### In game usage
 To take control off the proxy bot type `$link` in chat. To unlink type `$unlink` in chat. 
-The proxy implementation is not perfect. Entity states are not transfered correctly so map's and entities within render distence when joining the proxy will look wrong until you reload them.
+The proxy implementation is not perfect. Entity states are not transferred correctly so map's and entities within render distance when joining the proxy will look wrong until you reload them.
 If the START_IDLE variable is set the bot will try to not get kicked when joining the server. Altho this does not seam to be too effective at the moment. While running in sheering mode the bot can stay connect for up to 9 hours before getting kicked by the server.
 
 ## pm2 start
