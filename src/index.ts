@@ -20,6 +20,7 @@ import PChat from 'prismarine-chat'
 import type { ChatMessage } from 'prismarine-chat'
 import type { MessageBuilder as TypeMessageBuilder } from 'prismarine-chat'
 import type { Client } from 'minecraft-protocol'
+import { getQueueLengths } from "./queueLengthAPI";
 
 const queueLengthAPI = 'https://2b2t.space/queue'
 
@@ -36,24 +37,6 @@ let lastDisconnect = 0
 
 function ringConsoleBell() {
   console.info('\x07')
-}
-
-/*
-{"updatedAt":1651519960629,"queueLength":361}
-*/
-interface QueueLengthAPIResponse {
-  updatedAt: number
-  queueLength: number
-}
-
-async function getQueueLength() {
-  const response = await fetch(queueLengthAPI, {
-    headers: {
-      'User-Agent': 'Node-fetch auto-shepherd'
-    }
-  })
-  const json = await response.json() as QueueLengthAPIResponse
-  return json.queueLength
 }
 
 async function init() {
@@ -229,7 +212,7 @@ async function init() {
         } else if (string.startsWith('Position in queue')) {
           const { pos, didChange, firstTime } = parseMessageToPosition(string)
           updateMotd()
-          if (pos < 10 || (pos % 10 === 0 && didChange) || firstTime) {
+          if ((didChange && (pos < 10 || (pos % 10 === 0))) || firstTime) {
             console.info('Position in queue', pos)
           }
         } else if (logNoneQueueChat) {
@@ -402,19 +385,22 @@ process.on('warning', (warning) => {
 
 async function connectWhenReady(date: Date) {
   let logCounter = 0
+  debugger
   while (true) {
     logCounter += 1
     try {
-      const queueLength = await getQueueLength()
+      const queueLength = await getQueueLengths()
+      if (!queueLength) return
+      const main = queueLength.main.normal
       const now = Date.now() / 1000
       const timeToConnect = date.getTime() / 1000
       // console.info(timeToConnect - now)
-      const secondsToConnect = (timeToConnect - now) - (queueLength * 86)
+      const secondsToConnect = (timeToConnect - now) - (main * 86)
       if (logCounter % 15 === 0 || secondsToConnect < 15 * 60) {
         console.info(`Connecting in ${Math.floor(secondsToConnect / 3600)}h ${Math.floor(secondsToConnect / 60 % 60)}m ${Math.floor(secondsToConnect) % 60}s to reach end off queue in time`)
       }
       if (secondsToConnect < 0) {
-        console.info('Connecting to server. Current queue length:', queueLength, 'date', new Date().toLocaleString())
+        console.info('Connecting to server. Current queue length:', main, 'date', new Date().toLocaleString())
         init()
           .catch(console.error)
         return
@@ -430,11 +416,10 @@ async function connectWhenReady(date: Date) {
 
 if (process.env.CONNECT_ON) {
   try {
-    // debugger
     let date
-    debugger
-    if (!isNaN(Number(process.env.CONNECT_ON))) {
-      date = new Date(process.env.CONNECT_ON)
+    const timestamp = Number(process.env.CONNECT_ON)
+    if (!isNaN(timestamp)) {
+      date = new Date(timestamp)
     } else {
       date = toDate(process.env.CONNECT_ON)
     }
@@ -445,13 +430,15 @@ if (process.env.CONNECT_ON) {
     console.info('Should connect at', date.toLocaleString())
     // Check if the date is in the past
     if (date.getTime() < Date.now()) {
-      console.error('Date is in the past')
-      process.exit(1)
+      console.error('Date is in the past. Connecting right now.')
+      connectWhenReady(new Date()).catch(console.error)
+      // init().catch(console.error)
+    } else {
+      // log Time until as hours:minutes
+      console.info('Time until', new Date(date.getTime() - Date.now()).toISOString().substr(11, 8))
+      connectWhenReady(date)
+        .catch(console.error)
     }
-    // log Time until as hours:minutes
-    console.info('Time until', new Date(date.getTime() - Date.now()).toISOString().substr(11, 8))
-    connectWhenReady(date)
-      .catch(console.error)
   } catch (err) {
     console.info('Invalid date format', process.env.CONNECT_ON, err)
     process.exit(1)
