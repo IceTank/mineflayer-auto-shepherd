@@ -61,6 +61,11 @@ export function inject(bot: Bot, options: BotOptions): void {
   let startTime: Date = new Date()
   let itemsDepositedTotal: number = 0
   let lastMode: BotModes = 'idle'
+  let botConnected = true
+
+  bot.once('end', () => {
+    botConnected = false
+  })
 
   bot.autoShepherd = {
     autoCraftShears: true,
@@ -432,11 +437,12 @@ export function inject(bot: Bot, options: BotOptions): void {
   }
 
   const startCycling = async () => {
-    while (true) {
+    while (botConnected) {
       bot.autoShepherd.emitter.emit('alive')
       const lock = new LockToken()
       try {
         await Promise.race([cycle(lock), lock.waitAndTrebuchetThis(maxCycleTime)])
+        await wait(10)
         bot.autoShepherd.emitter.emit('alive')
       } catch (err: Error | any) {
         if (err instanceof Error && err.message === LockToken.ErrorMsgTokenInUse) {
