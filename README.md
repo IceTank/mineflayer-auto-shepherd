@@ -15,7 +15,7 @@ Ideal setup is a closed space with grass for the sheep to regrow there wool on t
 
 ## Installation
 
-1. Install [Node.js](https://nodejs.org)
+1. Install [Node.js](https://nodejs.org) version 14.17.0 or newer.
 2. Install git for windows/mac/linux [Git](https://git-scm.com/downloads)
 3. Install typescript and yarn `npm install --global typescript yarn`
 4. Open a command propt and navigate to a folder where you want to save the app. Then run `git clone https://github.com/IceTank/mineflayer-auto-shepherd`
