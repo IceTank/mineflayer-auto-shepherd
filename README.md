@@ -32,7 +32,7 @@ Ideal setup is a closed space with grass for the sheep to regrow there wool on t
 - `VIEWER=` `true`|`false`. Optional. Set if the browser world viewer should be used. Default to `true`.
 - `INV=` `true`|`false`. Optional. Set if the browser inventory viewer should be used. Default to `true`.
 - `START_IDLE=` `true`|`false`. Optional. Start in mode idle or start in mode running. Default to `false`.
-- `CONNECT_ON=` `number`. Optional. Unix timestamp in milliseconds. When the bot should connect to the server. When not provided starts immediately.
+- `CONNECT_ON=` `number`|`string`. Optional. Unix timestamp in milliseconds or a string. This will query the 2b2t queue length and try to connect to the queue so that it will join on the given time. Usefull if you just want to use the bot as a queue waiting bot. See below for config options.
 - `LOGOFFONDAMAGE=` `true`|`false`. Optional. Loges off when the bot takes damage. Defaults to `true`.
 - `EATONHUNGER=` `true`|`false`. Optional. Tries to eat when low on food. Defaults to `true`.
 
@@ -51,7 +51,7 @@ If the START_IDLE variable is set the bot will try to not get kicked when joinin
 
 ### CONNECT_ON environment variable
 
-The value can be either one off:
+Waits and tries to join the queue at a time where it will reach the end by the specified time. This will query the queue length by pinging the 2b2t server and reading the listet player count in the motd. The value can be either one off:
 
 - Unix timestamp in the node.js format. (milliseconds resolution)
 - `MM-DDTHH:mm` - Next Month, date, hour, minute as off local time
