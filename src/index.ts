@@ -20,6 +20,8 @@ import { getQueueLengths } from "./queueLengthAPI";
 import { Commands } from "./plugins/commands";
 import { ChatTools as ChatToolsClass } from "./plugins/chatTools";
 
+Error.stackTraceLimit = 50
+
 const chatLog = path.join(__dirname, '../chat.txt')
 const nmpCache = path.join(__dirname, '../nmp-cache')
 console.info('Chat log:', chatLog)
@@ -38,11 +40,14 @@ function ringConsoleBell() {
 async function init() {
   const proxy = new InspectorProxy({
     host: process.env.MCHOST,
-    username: process.env.MCUSERNAME as string,
-    password: process.env.MCPASSWORD,
-    auth: 'microsoft',
+    // username: process.env.MCUSERNAME as string,
+    username: 'proxyBot',
+    // password: process.env.MCPASSWORD,
+    // auth: 'microsoft',
+    auth: 'mojang',
     profilesFolder: nmpCache,
     version: '1.12.2',
+    // version: '1.18.2',
     checkTimeoutInterval: 90_000
   }, {
     motd: 'loading...',
@@ -362,13 +367,13 @@ async function init() {
   })
   
   bot.on('health', async () => {
-    if (bot.health < 18 && logoffOnDamage) {
+    if (bot.health < 18 && logoffOnDamage && bot.proxy.botIsControlling) {
       console.warn('Took to much damage logging off')
       bot.autoShepherd.logResults()
       process.exit(1)
     }
     // @ts-ignore
-    if (bot.food < 16 && eatOnHunger && !bot.autoEat.isEating) {
+    if (bot.food < 16 && eatOnHunger && !bot.autoEat.isEating && bot.proxy.botIsControlling) {
       await bot.autoShepherd.stopSheering()
       console.info('Starting to eat')
       await new Promise<void>((resolve) => {
