@@ -48,6 +48,10 @@ async function init() {
     checkTimeoutInterval: 90_000
   }, {
     motd: 'loading...',
+    security: {
+      onlineMode: process.env.ALLOWED_PLAYERS ? true : false,
+      allowList: process.env.ALLOWED_PLAYERS ? process.env.ALLOWED_PLAYERS.split(',') : undefined
+    }
   })
 
   let afkIntervalHandle: NodeJS.Timer | undefined = undefined;

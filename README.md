@@ -35,6 +35,7 @@ Ideal setup is a closed space with grass for the sheep to regrow there wool on t
 - `CONNECT_ON=` `number`|`string`. Optional. Unix timestamp in milliseconds or a string. This will query the 2b2t queue length and try to connect to the queue so that it will join on the given time. Usefull if you just want to use the bot as a queue waiting bot. See below for config options.
 - `LOGOFFONDAMAGE=` `true`|`false`. Optional. Loges off when the bot takes damage. Defaults to `true`.
 - `EATONHUNGER=` `true`|`false`. Optional. Tries to eat when low on food. Defaults to `true`.
+- `ALLOWED_PLAYERS=` Optional. Names split by a `,` off allowed players.
 
 ## Usage
 
