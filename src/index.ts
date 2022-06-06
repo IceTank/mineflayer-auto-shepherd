@@ -40,14 +40,11 @@ function ringConsoleBell() {
 async function init() {
   const proxy = new InspectorProxy({
     host: process.env.MCHOST,
-    // username: process.env.MCUSERNAME as string,
-    username: 'proxyBot',
-    // password: process.env.MCPASSWORD,
-    // auth: 'microsoft',
-    auth: 'mojang',
+    username: process.env.MCUSERNAME as string,
+    password: process.env.MCPASSWORD,
+    auth: 'microsoft',
     profilesFolder: nmpCache,
     version: '1.12.2',
-    // version: '1.18.2',
     checkTimeoutInterval: 90_000
   }, {
     motd: 'loading...',
