@@ -180,7 +180,10 @@ async function init() {
   }
 
   bot.on('error', console.error)
-  bot.on('kicked', (reason) => console.info('Kicked for reason', reason))
+  bot.on('kicked', (reason) => {
+    console.info('Last actions before disconnecting', bot.autoShepherd.lastActions)
+    console.info('Kicked for reason', reason)
+  })
   bot.on('end', handleReconnect)
   bot.on('message', (chatMessage) => {
     const chatString = chatMessage.toString()
@@ -355,8 +358,7 @@ async function init() {
     bot.swingArm(undefined)
   }, 15000)
 
-  bot.on('end', () => {
-    console.info('Disconnected')
+  bot.once('end', () => {
     if (afkIntervalHandle) clearInterval(afkIntervalHandle)
     if (actionTimeout) clearInterval(actionTimeout)
     clearInterval(motdUpdateInterval)
