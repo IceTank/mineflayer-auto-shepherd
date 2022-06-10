@@ -389,6 +389,7 @@ export function inject(bot: Bot, options: BotOptions): void {
     const item = bot.inventory.items().find(i => i.type === itemType)
     if (!item) return false
     await bot.clickWindow(item.slot, 0, 0)
+    await wait(InventoryClickDelay)
     return true
   }
 
@@ -491,6 +492,7 @@ export function inject(bot: Bot, options: BotOptions): void {
         botExit(0)
       }
       console.info('Crafting new shears')
+      await wait(1000) // Crafting new shears keeps failing sometimes maybe this helps?
       const success = await bot.autoShepherd.craftShears()
       token.trebuchetThis()
       if (!success) {
