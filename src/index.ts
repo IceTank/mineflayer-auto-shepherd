@@ -53,6 +53,9 @@ async function init() {
       allowList: process.env.ALLOWED_PLAYERS ? process.env.ALLOWED_PLAYERS.split(',') : undefined
     }
   })
+  if (process.env.ALLOWED_PLAYERS) {
+    console.info('Starting server with allowed players:', process.env.ALLOWED_PLAYERS)
+  }
 
   let afkIntervalHandle: NodeJS.Timer | undefined = undefined;
   let actionTimeout: NodeJS.Timer | undefined;
