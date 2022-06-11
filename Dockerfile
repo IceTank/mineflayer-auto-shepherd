@@ -2,7 +2,7 @@ FROM node:16-slim as build
 WORKDIR /src/app
 RUN apt-get update -y && apt-get install git -y && npm i --save-dev -g typescript
 COPY package.json .
-COPY yarn.lock .
+# COPY yarn.lock .
 COPY tsconfig.json .
 
 RUN yarn
