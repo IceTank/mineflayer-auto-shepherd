@@ -127,11 +127,10 @@ async function init() {
       line1 = `${nPre}${bot.username}&r ${mHost} -> &6Queue`
       line2 = `&7Position &6${lastQueuePosition}&r`
     } else if (proxyStatus === 'online') {
-      const playerLength = Object.keys(bot.players).length
-      const itemAmount = bot.inventory.items().reduce((i, v) => i + v.count, 0);
+      if (!ChatTools || !loginDate) return
       const ironAmount = bot.inventory.items().filter(i => i.name === 'iron_ingot').reduce((i, v) => i + v.count, 0);
       line1 = `${nPre}${bot.username}&r  ${mHost} -> &aOnline`
-      line2 = `&7Players &3${playerLength}&7 ⎜ Items &3${itemAmount}&7 ⎜ Iron left &3${ironAmount}`
+      line2 = `&7Iron left &3${ironAmount} ⎜ &7Connected since &3${ChatTools.getTimeConnectedString(loginDate)}`
     }
     // console.info('Setting motd to', line1, line2)
     const motd = MessageBuilder.fromString(`${line1}\n${line2}`)
@@ -215,24 +214,7 @@ async function init() {
         .catch(console.error)
     }
   })
-  // bot._client.on('title', (packet) => {
-  //   if (packet.action !== 0) return
-  //   if (!Chat) return
-  //   try {
-  //     // console.info('Packets', packet)
-  //     const text = new Chat(JSON.parse(packet.text))
-  //     const string = text.toString()
-  //     if (string.trim() === '') return
-  //     const { pos, didChange } = parseMessageToPosition(string)
-  //     // console.info('Position from title', pos)
-  //     // if (!didChange) return
-  //     // updateMotd()
-  //     // if (pos < 10 || (pos % 10 === 0 && didChange)) {
-  //     // }
-  //   } catch (err) {
-      
-  //   }
-  // })
+
   proxy.on('clientConnect', (client) => {
     updateMotd()
     if (!ChatTools || !loginDate) return

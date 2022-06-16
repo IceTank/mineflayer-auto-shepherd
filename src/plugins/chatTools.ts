@@ -14,7 +14,34 @@ export class ChatTools {
    */
   sendStatusMessage(client: Client, loginDate: Date, currentMode: string) {
     if (!this.MessageBuilder) return
-    const connectedAt = loginDate ? loginDate.getTime() : 0
+    const root = new this.MessageBuilder()
+    this.addPrefix(root)
+
+    const onlineTime = new this.MessageBuilder()
+    onlineTime.setColor('white').setText(`Connected since `)
+    root.addExtra(onlineTime)
+    const onlineTime2 = new this.MessageBuilder()
+    onlineTime2.setColor('gold').setText(`${this.getTimeConnectedString(loginDate)}`)
+    root.addExtra(onlineTime2)
+
+    const messageMode = new this.MessageBuilder()
+    messageMode.setColor('white').setText(` Current status:`)
+    root.addExtra(messageMode)
+    const messageMode2 = new this.MessageBuilder()
+    let color: 'green' | 'red' | 'yellow' = 'green'
+    if (currentMode === 'stopped') {
+      color = 'red'
+    } else if (currentMode === 'idle') {
+      color = 'yellow'
+    }
+    messageMode2.setColor(color).setText(` ${currentMode}`)
+    root.addExtra(messageMode2)
+
+    this.sendMessage(client, root)
+  }
+
+  getTimeConnectedString(startDate: Date) {
+    const connectedAt = startDate ? startDate.getTime() : 0
     const sec = Math.floor((Date.now() - connectedAt) / 1000)
     const hours = Math.floor(sec / (60 * 60))
     const min = Math.floor((sec - hours * 60 * 60) / 60)
@@ -27,18 +54,7 @@ export class ChatTools {
         hourDisplay = hours + 'h '
       }
     }
-    const root = new this.MessageBuilder()
-    this.addPrefix(root)
-
-    const onlineTime = new this.MessageBuilder()
-    onlineTime.setColor('green').setText(`Connected since ${hourDisplay}${minutesDisplay}${secondsDisplay}s `)
-    root.addExtra(onlineTime)
-
-    const messageMode = new this.MessageBuilder()
-    messageMode.setColor('white').setText(`Current status: ${currentMode}`)
-
-    root.addExtra(messageMode)
-    this.sendMessage(client, root)
+    return `${hourDisplay}${minutesDisplay}${secondsDisplay}s`
   }
 
   sendMessage (client: Client, message: TypeMessageBuilder, withPrefix = true) {
