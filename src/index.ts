@@ -74,6 +74,19 @@ async function init() {
   let ChatTools: ChatToolsClass | undefined
   const commandManager = Commands.getInstance()
 
+  // Stop flying when we are flying
+  proxy.conn.bot._client.on('abilities', (packet) => {
+    console.info('abilities', packet)
+    if (packet.flags & 0b10) {
+      setTimeout(() => {
+        bot._client.write('abilities', {
+          ...packet,
+          flags: packet.flags & ~0b10 // disable flying. Also idk what this does lol. Thanks github copilot!
+        })
+      }, 50)
+    }
+  })
+
   const initWatchdog = () => {
     lastAction = Date.now()
     actionTimeout = setInterval(() => {

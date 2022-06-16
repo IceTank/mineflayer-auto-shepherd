@@ -411,28 +411,34 @@ export function inject(bot: Bot, options: BotOptions): void {
     return true
   }
 
-  const randomIdleAction = async () => {
+  const antiAFKAction = async () => {
+    // Move to random offset position
     try {
-      const randomAction = Math.floor(Math.random() * 2)
-      if (randomAction === 0) {
-        try {
-          // Look at random direction
-          const p = bot.lookAt(bot.entity.position.offset(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1))
-          await Promise.race([timeoutAfter(5000), p])
-        } catch (err) { }
-      } else if (randomAction === 1) {
-        // Move to random offset position
-        const randomXZOffset = bot.entity.position.offset(Math.random() * 2 - 1, 0, Math.random() * 2 - 1)
-        try {
-          const p = bot.pathfinder.goto(new goals.GoalBlock(randomXZOffset.x, randomXZOffset.y, randomXZOffset.z))
-          await Promise.race([timeoutAfter(5000), p])
-        } catch (err) {
-          bot.pathfinder.setGoal(null)
-        }
-      }
-      return
-    } catch (e) {
-      console.error(e)
+      console.info('Walking away')
+      const pos = bot.entity.position.clone()
+      // goto cannot handle situations where the bot cannot find a path. But we still want to move regardless of the 
+      // path finding result and currently only setGoal can do this
+      bot.pathfinder.setGoal(new goals.GoalInvert(new goals.GoalNearXZ(pos.x, pos.z, 16)))
+      await Promise.race([wait(5000), once(bot, 'goal_reached')])
+    } catch (err) {
+      console.error(err)
+      await wait(200)
+    } finally {
+      bot.pathfinder.setGoal(null)
+      await wait(200)
+    }
+    try {
+      // Start digging a random block
+      const block = bot.blockAt(bot.entity.position.offset(0, -1, 0))
+      if (!block) return
+      bot.dig(block, true).catch(() => {})
+      await Promise.race([bot.waitForTicks(2), timeoutAfter()])
+      bot.stopDigging()
+      await wait(200)
+    } catch (err) { 
+      console.error(err)
+    } finally {
+      bot.stopDigging()
     }
   }
 
@@ -472,11 +478,8 @@ export function inject(bot: Bot, options: BotOptions): void {
       return
     }
     if (bot.autoShepherd.currentMode === 'idle') {
-      await token.waitAndTrebuchetThis(1000)
-      // Don't move all the time
-      if (Math.random() < 0.1) {
-        await randomIdleAction()
-      }
+      await token.waitAndTrebuchetThis(30000)
+      await antiAFKAction()
       return
     }
     isRunning = true
