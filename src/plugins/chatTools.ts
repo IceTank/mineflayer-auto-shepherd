@@ -43,9 +43,13 @@ export class ChatTools {
   getTimeConnectedString(startDate: Date) {
     const connectedAt = startDate ? startDate.getTime() : 0
     const sec = Math.floor((Date.now() - connectedAt) / 1000)
-    const hours = Math.floor(sec / (60 * 60))
-    const min = Math.floor((sec - hours * 60 * 60) / 60)
-    const secondsDisplay = sec % 60
+    return this.secondsDiffString(sec)
+  }
+
+  secondsDiffString(seconds: number) {
+    const hours = Math.floor(seconds / (60 * 60))
+    const min = Math.floor((seconds - hours * 60 * 60) / 60)
+    const secondsDisplay = seconds % 60
     let minutesDisplay = ''
     let hourDisplay = ''
     if ((min % 60) > 0) {

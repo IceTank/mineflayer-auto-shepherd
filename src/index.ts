@@ -76,7 +76,6 @@ async function init() {
 
   // Stop flying when we are flying
   proxy.conn.bot._client.on('abilities', (packet) => {
-    console.info('abilities', packet)
     if (packet.flags & 0b10) {
       setTimeout(() => {
         bot._client.write('abilities', {
@@ -134,13 +133,16 @@ async function init() {
     let line1 = ''
     let line2 = ''
     let mHost = host ?? 'unknown'
-    if (!MessageBuilder) return
+    if (!MessageBuilder || !ChatTools) return
     const nPre = '&2'
     if (proxyStatus === 'queue') {
+      const estimatedTime = timeToQueueEnd(lastQueuePosition)
+      if (!estimatedTime) return
+      const seconds = Math.floor((estimatedTime.getTime() - Date.now()) / 1000)
       line1 = `${nPre}${bot.username}&r ${mHost} -> &6Queue`
-      line2 = `&7Position &6${lastQueuePosition}&r`
+      line2 = `&7Position &6${lastQueuePosition}&r ⎜ Est. time left: &6${ChatTools.secondsDiffString(seconds)}`
     } else if (proxyStatus === 'online') {
-      if (!ChatTools || !loginDate) return
+      if (!loginDate) return
       const ironAmount = bot.inventory.items().filter(i => i.name === 'iron_ingot').reduce((i, v) => i + v.count, 0);
       line1 = `${nPre}${bot.username}&r  ${mHost} -> &aOnline`
       line2 = `&7Iron left &3${ironAmount} ⎜ &7Connected since &3${ChatTools.getTimeConnectedString(loginDate)}`
@@ -231,6 +233,7 @@ async function init() {
   proxy.on('clientConnect', (client) => {
     updateMotd()
     if (!ChatTools || !loginDate) return
+    console.info(`Player connected to proxy ${client.username} [${client.socket.remoteAddress}]`)
     ChatTools.sendStatusMessage(client, loginDate, bot.autoShepherd.currentMode)
   })
   proxy.on('clientChatRaw', (client, message) => {
@@ -399,9 +402,22 @@ process.on('warning', (warning) => {
   console.warn(warning.stack)
 })
 
+/**
+ * Given a queue position estimates how many seconds are left until the end off the queue is reached
+ * @returns 
+ */
+function timeToQueueEnd(position: number) {
+  let magicQueueSpeedNumber = 35.7
+  if (process.env.QUEUESPEED) {
+    const num = parseFloat(process.env.QUEUESPEED)
+    if (isNaN(num)) return null
+    magicQueueSpeedNumber = num
+  }
+  return new Date(Date.now() + (position * magicQueueSpeedNumber) * 1000)
+}
+
 async function connectWhenReady(date: Date) {
   let logCounter = 0
-  debugger
   while (true) {
     logCounter += 1
     try {
@@ -411,7 +427,10 @@ async function connectWhenReady(date: Date) {
       const now = Date.now() / 1000
       const timeToConnect = date.getTime() / 1000
       // console.info(timeToConnect - now)
-      const secondsToConnect = (timeToConnect - now) - (main * 86)
+      const estimatedCurrentTime = timeToQueueEnd(main)
+      if (estimatedCurrentTime === null) return
+      const estimatedCurrentTimeSeconds = estimatedCurrentTime.getTime() / 1000 - now
+      const secondsToConnect = (timeToConnect - now) - estimatedCurrentTimeSeconds
       if (logCounter % 15 === 0 || secondsToConnect < 15 * 60) {
         console.info(`Connecting in ${Math.floor(secondsToConnect / 3600)}h ${Math.floor(secondsToConnect / 60 % 60)}m ${Math.floor(secondsToConnect) % 60}s to reach end off queue in time`)
       }
