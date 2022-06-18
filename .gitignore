@@ -6,3 +6,4 @@ nmp-cache
 *.tar
 .env
 .build-env
+plugins/**

@@ -12,6 +12,7 @@ import { InspectorProxy } from "mineflayer-proxy-inspector";
 import { inject as autoShepherdPlugin, Modes } from "./plugins/autoShepherd";
 import path from "path";
 import { promises as fs } from "fs";
+import { default as fsSynch } from "fs";
 import { toDate } from "./timeCalculator";
 import PChat from 'prismarine-chat'
 import type { ChatMessage } from 'prismarine-chat'
@@ -32,6 +33,8 @@ let bot: mineflayer.Bot
 let disconnectCooldown = 0
 let maxDisconnectCooldown = 10 * 60 * 1000 // 10 minutes
 let lastDisconnect = 0
+
+const reconnectDelay = 10 * 60 * 1000 // 10 minutes
 
 function ringConsoleBell() {
   console.info('\x07')
@@ -56,6 +59,8 @@ async function init() {
   if (process.env.ALLOWED_PLAYERS) {
     console.info('Starting server with allowed players:', process.env.ALLOWED_PLAYERS)
   }
+
+  loadExternalPlugins(proxy.conn.bot)
 
   let afkIntervalHandle: NodeJS.Timer | undefined = undefined;
   let actionTimeout: NodeJS.Timer | undefined;
@@ -126,7 +131,7 @@ async function init() {
     setTimeout(() => {
       init()
         .catch(console.error)
-    }, 30000 + disconnectCooldown)
+    }, reconnectDelay + disconnectCooldown)
   }
 
   const updateMotd = () => {
@@ -446,6 +451,23 @@ async function connectWhenReady(date: Date) {
       await wait(60_000)
       continue
     }
+  }
+}
+
+function loadExternalPlugins(bot: mineflayer.Bot) {
+  const pluginFolder = path.join(__dirname, '../plugins')
+  try {
+    const pluginsList = fsSynch.readdirSync(pluginFolder)
+    for (const plugin of pluginsList) {
+      try {
+        bot.loadPlugin(require(path.join(pluginFolder, plugin)))
+        console.info('Loaded plugin', plugin)
+      } catch (err) {
+        console.error('Failed to load plugin', plugin, err)
+      }
+    }
+  } catch (err: any) {
+    console.warn('Failed to load plugins', err?.message)
   }
 }
 
