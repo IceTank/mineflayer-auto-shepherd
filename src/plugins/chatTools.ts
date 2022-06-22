@@ -52,7 +52,7 @@ export class ChatTools {
     const secondsDisplay = seconds % 60
     let minutesDisplay = ''
     let hourDisplay = ''
-    if ((min % 60) > 0) {
+    if (min > 0) {
       minutesDisplay =  (min % 60) + 'm '
       if (hours > 0) {
         hourDisplay = hours + 'h '
