@@ -15,7 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "@types/node": "^16.11.12",
-    "dotenv": "^10.0.0",
+    "dotenv": "^16.0.1",
     "minecraft-protocol": "^1.35.0",
     "mineflayer": "^4.2.0",
     "mineflayer-auto-eat": "^2.3.3",

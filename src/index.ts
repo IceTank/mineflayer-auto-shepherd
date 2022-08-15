@@ -60,7 +60,9 @@ async function init() {
     console.info('Starting server with allowed players:', process.env.ALLOWED_PLAYERS)
   }
 
-  loadExternalPlugins(proxy.conn.bot)
+  const [ conn ] = await once(proxy, 'botReady')
+  
+  loadExternalPlugins(conn.bot)
 
   let afkIntervalHandle: NodeJS.Timer | undefined = undefined;
   let actionTimeout: NodeJS.Timer | undefined;
@@ -140,11 +142,11 @@ async function init() {
     }
     // console.info('Setting motd to', line1, line2)
     const motd = MessageBuilder.fromString(`${line1}\n${line2}`)
+    // @ts-ignore
     proxy.setChatMessageMotd(motd.toJSON())
   }
 
-  // @ts-ignore-error
-  bot = proxy.conn.bot
+  bot = conn.bot
   bot.on('login', () => {
     loginDate = new Date()
     proxyStatus = 'queue'
