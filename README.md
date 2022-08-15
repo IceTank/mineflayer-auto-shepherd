@@ -36,6 +36,8 @@ Ideal setup is a closed space with grass for the sheep to regrow there wool on t
 - `LOGOFFONDAMAGE=` `true`|`false`. Optional. Loges off when the bot takes damage. Defaults to `true`.
 - `EATONHUNGER=` `true`|`false`. Optional. Tries to eat when low on food. Defaults to `true`.
 - `ALLOWED_PLAYERS=` Optional. Names split by a `,` off allowed players.
+- `IPC_FOLDER=` Optional. IPC Folder
+- `SERVERPORT=` Optional. The port the server should be running on. Defaults to 25566
 
 ## Usage
 

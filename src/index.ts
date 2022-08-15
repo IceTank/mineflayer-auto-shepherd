@@ -28,6 +28,19 @@ const nmpCache = path.join(__dirname, '../nmp-cache')
 console.info('Chat log:', chatLog)
 console.info('Nmp cache', nmpCache)
 
+let isIPC = !!process.env.IPC_FOLDER
+const name = process.argv[2]
+if (!name && isIPC) {
+  console.error('IPC_FOLDER is set but no name provided for IPC name')
+  process.exit(1)
+}
+let socket = ''
+if (process.platform === 'win32') {
+  socket = '\\\\.\\pipe\\mineflayer-overnet/' + name
+} else {
+  socket = path.join(process.env.IPC_FOLDER ?? './ipc', 'mineflayer-overnet-' + name)
+}
+
 let bot: mineflayer.Bot
 
 let disconnectCooldown = 0
@@ -54,7 +67,10 @@ async function init() {
     security: {
       onlineMode: process.env.ALLOWED_PLAYERS ? true : false,
       allowList: process.env.ALLOWED_PLAYERS ? process.env.ALLOWED_PLAYERS.split(',') : undefined
-    }
+    },
+    // @ts-ignore
+    port: isIPC ? socket : Number(process.env.SERVERPORT ?? 25566),
+    socketType: isIPC ? 'ipc' : undefined
   })
   if (process.env.ALLOWED_PLAYERS) {
     console.info('Starting server with allowed players:', process.env.ALLOWED_PLAYERS)
