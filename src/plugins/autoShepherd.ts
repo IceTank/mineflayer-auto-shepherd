@@ -458,7 +458,7 @@ export function inject(bot: Bot, options: BotOptions): void {
   const cycle = async (token: LockToken) => {
     isAwaitingCycleStart = false
     bot.autoShepherd.addLastAction('cycle start')
-    if (!bot.proxy.botIsControlling) {
+    if (!bot.proxy.botHasControl()) {
       await token.waitAndTrebuchetThis(5000)
       return
     }
@@ -486,7 +486,7 @@ export function inject(bot: Bot, options: BotOptions): void {
     const shears = bot.inventory.items().find(i => i.name.includes('shears'))
     if (!shears) {
       if (!bot.autoShepherd.autoCraftShears) {
-        if (!bot.proxy.botIsControlling) return
+        if (!bot.proxy.botHasControl()) return
         console.info('No more shears left')
         botExit(0)
       }
@@ -494,7 +494,7 @@ export function inject(bot: Bot, options: BotOptions): void {
       const success = await bot.autoShepherd.craftShears()
       token.trebuchetThis()
       if (!success) {
-        if (!bot.proxy.botIsControlling) return
+        if (!bot.proxy.botHasControl()) return
         console.info('No more shears left. Crafting shears failed')
         botExit(1)
       }

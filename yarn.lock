@@ -16,9 +16,10 @@
     jsonwebtoken "^8.5.1"
     uuid "^8.3.0"
 
-"@rob9315/mcproxy@github:IceTank/mcproxy-1#middleware":
-  version "0.3.1"
-  resolved "https://codeload.github.com/IceTank/mcproxy-1/tar.gz/076c4a11584b2d3e78577bb2979afd01c6e2b611"
+"@icetank/mcproxy@^1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@icetank/mcproxy/-/mcproxy-1.0.3.tgz#e99353308618e2182121e1a25ce9f48549a9ae17"
+  integrity sha512-Ca4LlWQ/FBAU44n4N7U1LyVzD4PvaMVWNaKHSUxlE+TqY7B0bIK7SN1jQVuNxCzm3GKkY6B8tx32nS3kJW73BA==
   dependencies:
     minecraft-data "^3.0.0"
     minecraft-protocol "^1.32.0"
@@ -692,23 +693,6 @@ mineflayer-auto-eat@^2.3.3:
   dependencies:
     minecraft-data "^2.93.0"
 
-"mineflayer-auto-shepherd@file:.":
-  version "1.10.1"
-  dependencies:
-    "@types/node" "^16.11.12"
-    dotenv "^16.0.1"
-    minecraft-protocol "^1.35.0"
-    mineflayer "^4.2.0"
-    mineflayer-auto-eat "^2.3.3"
-    mineflayer-auto-shepherd "file:./C:/Users/Niklas/AppData/Local/Yarn/Cache/v6/npm-mineflayer-auto-shepherd-1.10.1-de7184e9-9540-4fbc-a85c-7f6ed87e51c2-1660571963493/node_modules/mineflayer-auto-shepherd"
-    mineflayer-pathfinder "^2.1.1"
-    mineflayer-proxy-inspector "^1.4.8"
-    mineflayer-web-inventory "^1.8.1"
-    node-fetch "^2.6.7"
-    prismarine-entity "^2.1.0"
-    prismarine-viewer "^1.21.0"
-    prismarine-windows "github:IceTank/prismarine-windows#wrong-assertion-workaround"
-
 mineflayer-pathfinder@^2.1.1:
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/mineflayer-pathfinder/-/mineflayer-pathfinder-2.3.1.tgz#2dec04f43982fc9b7f15e577895f2124e075e24f"
@@ -722,14 +706,16 @@ mineflayer-pathfinder@^2.1.1:
     prismarine-physics "^1.5.2"
     vec3 "^0.1.7"
 
-mineflayer-proxy-inspector@^1.4.8:
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/mineflayer-proxy-inspector/-/mineflayer-proxy-inspector-1.6.0.tgz#e90eb7414183cee2fa47db2fa7cf626ac0e223c6"
-  integrity sha512-9OpKWKLNy+AR2raDDrFdWDlh4BnJV0WgivYw9cITEDkPt68kG6caodB4IZUYoIpwpkI0nZ6ZRNUBeD7dgsr1aw==
+mineflayer-proxy-inspector@^2.2.1:
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/mineflayer-proxy-inspector/-/mineflayer-proxy-inspector-2.2.1.tgz#2e902371b61aa390bd7dff48610b466807c8f2c8"
+  integrity sha512-uRWfRqzNlwobj4ZDbq8OFC271PFSQJQtgmwGAqWgKLe8x5ie8UnNXpbSH5zCMwbWVgG8lghtc+c/fnP0qZHe5g==
   dependencies:
-    "@rob9315/mcproxy" "github:IceTank/mcproxy-1#middleware"
+    "@icetank/mcproxy" "^1.0.3"
     minecraft-protocol "^1.35.0"
     mineflayer "^4.2.0"
+    prismarine-provider-anvil "^2.7.0"
+    prismarine-world "^3.6.1"
 
 mineflayer-web-inventory@^1.8.1:
   version "1.8.3"
@@ -944,6 +930,16 @@ prismarine-physics@^1.3.1, prismarine-physics@^1.5.2:
     prismarine-nbt "^2.0.0"
     vec3 "^0.1.7"
 
+prismarine-provider-anvil@^2.7.0:
+  version "2.7.0"
+  resolved "https://registry.yarnpkg.com/prismarine-provider-anvil/-/prismarine-provider-anvil-2.7.0.tgz#b3aef307d66de257bcf44f03bd0edb847a778c0c"
+  integrity sha512-a4NfihRfy+PeKpiWp2CJxTUPMhSROXb7JzA44nfRXqHPDnK4ilC2+MBNeZyi5Wj5OuYRbSd8ZS44YkQMoFR9aQ==
+  dependencies:
+    prismarine-chunk "^1.29.0"
+    prismarine-nbt "^2.0.0"
+    uint4 "^0.1.2"
+    vec3 "^0.1.6"
+
 prismarine-recipe@^1.1.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/prismarine-recipe/-/prismarine-recipe-1.2.0.tgz#95c223a37fc1047e4f8f619988d3923ec0c943f7"
@@ -994,6 +990,13 @@ prismarine-world@^3.3.1, prismarine-world@^3.6.0:
   version "3.6.1"
   resolved "https://registry.yarnpkg.com/prismarine-world/-/prismarine-world-3.6.1.tgz#c3923ddb8c4806947fb86695f7c8359380aef650"
   integrity sha512-sv7rR+vJ/ac3/dm4MoumreL4eqMi3B+h8I+JDYXQkNCdSJJISniQvi5qS4zTnAUCGXx/N6QfQ02bjBfyEoZuRw==
+  dependencies:
+    vec3 "^0.1.7"
+
+prismarine-world@^3.6.1:
+  version "3.6.2"
+  resolved "https://registry.yarnpkg.com/prismarine-world/-/prismarine-world-3.6.2.tgz#344ab67e90246daabc467db36d98e1dd09f4f207"
+  integrity sha512-xNNo3bd8EnCMjiPbVrh3jYa1Upa8Krkb13BgO7FOOfD5ZYf+iYDZewBtDbHYWzZZB2N0JlTtimMOHRhZhDJirw==
   dependencies:
     vec3 "^0.1.7"
 
@@ -1313,6 +1316,11 @@ vec3@^0.1.3, vec3@^0.1.4, vec3@^0.1.7:
   version "0.1.7"
   resolved "https://registry.yarnpkg.com/vec3/-/vec3-0.1.7.tgz#e203a7bcc2d074c328721421beed48b30c81e41b"
   integrity sha512-EZSeXBL+L3go2wWwtQQse4fEcNGIQjT14qvi4LYVj1ifZt/J5XZ1QZqkDuOVVH07YwTEIFbsAv3pzwUpF7x9Wg==
+
+vec3@^0.1.6:
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/vec3/-/vec3-0.1.8.tgz#cfa5a5d5d1d96f6bfa3b7f78ba1284ebec13b628"
+  integrity sha512-LfKrP625Bsg/Tj52YdYPsHmpsJuo+tc6fLxZxXjEo9k2xSspKlPvoYTHehykKhp1FvV9nm+XU3Ehej5/9tpDCg==
 
 webidl-conversions@^3.0.0:
   version "3.0.1"
