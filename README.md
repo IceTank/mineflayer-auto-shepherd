@@ -37,7 +37,7 @@ Ideal setup is a closed space with grass for the sheep to regrow there wool on t
 - `EATONHUNGER=` `true`|`false`. Optional. Tries to eat when low on food. Defaults to `true`.
 - `ALLOWED_PLAYERS=` Optional. Names split by a `,` off allowed players.
 - `IPC_FOLDER=` Optional. IPC Folder
-- `SERVERPORT=` Optional. The port the server should be running on. Defaults to 25566
+- `SERVERPORT=` Optional. The port the server should be running on. Defaults to 25566 
 
 ## Usage
 
@@ -51,6 +51,20 @@ When you run this script on a server you can also connect to the proxy by using 
 To take control off the proxy bot type `$link` in chat. To unlink type `$unlink` in chat.
 The proxy implementation is not perfect. Entity states are not transferred correctly so map's and entities within render distance when joining the proxy will look wrong until you reload them.
 If the START_IDLE variable is set the bot will try to not get kicked when joining the server. Altho this does not seam to be too effective at the moment. While running in sheering mode the bot can stay connect for up to 9 hours before getting kicked by the server.
+
+### In game commands
+- `$link` - Takes control of the bot. After this command you can use the bot as if you where connect to the server yourself.
+- `$unlink` - Unlinks you if you are controlling the bot. Do this if you want the bot to continue working or simply disconnect.
+- `$deposit` - Makes the bot deposit its wool into nearby chests immediately. Will only work if no player is currently linked to the bot.
+- `$stop` - Makes the bot stop sheering
+- `$start` - Makes the bot start sheering when it is stopped
+- `$quit` or `$exit` - Makes the bot disconnect from the server
+- `$status` - Gives some status information about the bot
+- `$help` - Lists of all commands
+- `$config`
+    - `autologoff` Controlls if the bot should disconnect after the last player leaves the proxy. Default is `off`
+        * `on` the bot will disconnect when the last player on the proxy disconnects.
+        * `off` the bot will stay online even if players disconnect
 
 ### CONNECT_ON environment variable
 

@@ -70,7 +70,8 @@ async function init() {
     },
     // @ts-ignore
     port: isIPC ? socket : Number(process.env.SERVERPORT ?? 25566),
-    socketType: isIPC ? 'ipc' : undefined
+    socketType: isIPC ? 'ipc' : undefined,
+    botStopOnLogoff: false,
   })
   if (process.env.ALLOWED_PLAYERS) {
     console.info('Starting server with allowed players:', process.env.ALLOWED_PLAYERS)
@@ -101,7 +102,7 @@ async function init() {
     lastAction = Date.now()
     actionTimeout = setInterval(() => {
       const now = new Date()
-      if (!bot.proxy.botIsControlling) return
+      if (!bot.proxy.botHasControl()) return
       if (bot.autoShepherd.currentMode === 'stopped' || bot.autoShepherd.currentMode === 'idle') return
       if (now.getTime() - lastAction > watchdogTimeout) {
         console.info('Disconnect due to stuck', now.toLocaleTimeString())
@@ -259,7 +260,7 @@ async function init() {
   proxy.on('clientConnect', (client) => {
     updateMotd()
     if (!ChatTools || !loginDate) return
-    ChatTools.sendStatusMessage(client, loginDate, bot.autoShepherd.currentMode)
+    ChatTools.sendStatusMessage(proxy, client, loginDate, bot.autoShepherd.currentMode)
   })
   proxy.on('clientChatRaw', (client, message) => {
     commandManager.onLine(message, client)
@@ -299,7 +300,7 @@ async function init() {
   commandManager.on('status', (client) => {
     if (!client || !ChatTools || !loginDate) return console.info('Current mode:', bot.autoShepherd.currentMode)
     if (!MessageBuilder) return console.info('No MessageBuilder')
-    ChatTools.sendStatusMessage(client, loginDate, bot.autoShepherd.currentMode)
+    ChatTools.sendStatusMessage(proxy, client, loginDate, bot.autoShepherd.currentMode)
   })
   commandManager.on('startSheering', () => {
     bot.autoShepherd.startSheering()
@@ -338,6 +339,17 @@ async function init() {
       bot.autoShepherd.switchMode(mode)
       ChatTools.sendMessage(client, new MessageBuilder().setColor('green').setText(`Switched to mode ${mode}`))
     }
+  })
+  commandManager.on('invalidUse', (client, command) => {
+    if (!client || !ChatTools) return console.info('No client')
+    if (!MessageBuilder) return console.info('No MessageBuilder')
+    ChatTools.sendMessage(client, new MessageBuilder().setColor('red').setText(`Invalid usage: ${command}`)) 
+  })
+  commandManager.on('autologoff', (client, enabled) => {
+    if (!client || !ChatTools) return console.info('No client')
+    if (!MessageBuilder) return console.info('No MessageBuilder')
+    proxy.proxyOptions.botStopOnLogoff = enabled
+    ChatTools.sendMessage(client, new MessageBuilder().setColor('green').setText(`Bot disconnect on player disconnect: ${enabled}`))
   })
 
   // Wait for the bot to spawn. Also works for the 2b2t queue.
@@ -396,13 +408,13 @@ async function init() {
   })
   
   bot.on('health', async () => {
-    if (bot.health < 18 && logoffOnDamage && bot.proxy.botIsControlling) {
+    if (bot.health < 18 && logoffOnDamage && bot.proxy.botHasControl()) {
       console.warn('Took to much damage logging off')
       bot.autoShepherd.logResults()
       process.exit(1)
     }
     // @ts-ignore
-    if (bot.food < 16 && eatOnHunger && !bot.autoEat.isEating && bot.proxy.botIsControlling) {
+    if (bot.food < 16 && eatOnHunger && !bot.autoEat.isEating && bot.proxy.botHasControl()) {
       await bot.autoShepherd.stopSheering()
       console.info('Starting to eat')
       await new Promise<void>((resolve) => {

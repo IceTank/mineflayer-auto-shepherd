@@ -1,4 +1,5 @@
 import { Client } from "minecraft-protocol"
+import { InspectorProxy } from "mineflayer-proxy-inspector"
 import type { MessageBuilder as TypeMessageBuilder } from 'prismarine-chat'
 
 export class ChatTools {
@@ -12,7 +13,7 @@ export class ChatTools {
    * Send how long the proxy has been connected to the server
    * @param client The connecting client
    */
-  sendStatusMessage(client: Client, loginDate: Date, currentMode: string) {
+  sendStatusMessage(proxy: InspectorProxy, client: Client, loginDate: Date, currentMode: string) {
     if (!this.MessageBuilder) return
     const connectedAt = loginDate ? loginDate.getTime() : 0
     const sec = Math.floor((Date.now() - connectedAt) / 1000)
@@ -36,8 +37,12 @@ export class ChatTools {
 
     const messageMode = new this.MessageBuilder()
     messageMode.setColor('white').setText(`Current status: ${currentMode}`)
-
     root.addExtra(messageMode)
+
+    const messageAutoLogoff = new this.MessageBuilder()
+    messageAutoLogoff.setColor('white').setText(`Auto logoff: ${proxy.proxyOptions.botStopOnLogoff ? 'on' : 'off'}`)
+    root.addExtra(messageAutoLogoff)
+
     this.sendMessage(client, root)
   }
 
